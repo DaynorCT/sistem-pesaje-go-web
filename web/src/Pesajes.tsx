@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { fetchApi } from "./api-client";
+import { PesajeDialogoRapido, type RapidoTipo } from "./pesaje-creacion-rapida";
 import ModuloPanel from "./components/ModuloPanel";
 import { IconoModulo } from "./iconos-modulo";
 import { motivoNoFinalizar, type PesajeFila } from "./pesajes-logica";
@@ -66,14 +66,14 @@ function ComboCampo({
   value,
   onChange,
   items,
-  plusTo,
+  onPlus,
 }: {
   etiqueta: string;
   requerido?: boolean;
   value: string;
   onChange: (v: string) => void;
   items: Opcion[];
-  plusTo?: string;
+  onPlus?: () => void;
 }) {
   return (
     <label className="pesaje-campo">
@@ -90,10 +90,10 @@ function ComboCampo({
             </option>
           ))}
         </select>
-        {plusTo ? (
-          <Link className="boton-mas" to={plusTo} title="Crear nuevo">
+        {onPlus ? (
+          <button type="button" className="boton-mas" title="Crear nuevo" onClick={onPlus}>
             +
-          </Link>
+          </button>
         ) : null}
       </span>
     </label>
@@ -125,6 +125,7 @@ export default function Pesajes() {
 
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+  const [rapido, setRapido] = useState<RapidoTipo | null>(null);
 
   const pesoNeto = useMemo(() => Math.max(0, pesoBruto - pesoTara), [pesoBruto, pesoTara]);
   const puedeCapturar = pesoVivo > 0;
@@ -245,6 +246,17 @@ export default function Pesajes() {
     }
   }
 
+  async function onCreacionRapida(tipo: RapidoTipo, id: number) {
+    await cargarOpciones();
+    if (tipo === "chofer") setChoferId(String(id));
+    else if (tipo === "vehiculo") setVehiculoId(String(id));
+    else if (tipo === "proveedor") setProveedorId(String(id));
+    setMensaje(
+      tipo === "vehiculo" ? "Vehículo creado." : tipo === "chofer" ? "Chofer creado." : "Proveedor creado.",
+    );
+    setError("");
+  }
+
   async function finalizarPesaje(p: FilaGrilla) {
     const bloqueo = motivoNoFinalizar(p);
     if (bloqueo) {
@@ -341,7 +353,7 @@ export default function Pesajes() {
                 value={choferId}
                 onChange={setChoferId}
                 items={opciones.choferes}
-                plusTo="/choferes"
+                onPlus={() => setRapido("chofer")}
               />
               <ComboCampo
                 etiqueta="Placa"
@@ -349,7 +361,7 @@ export default function Pesajes() {
                 value={vehiculoId}
                 onChange={setVehiculoId}
                 items={opciones.vehiculos}
-                plusTo="/catalogo"
+                onPlus={() => setRapido("vehiculo")}
               />
               <label className="pesaje-campo">
                 <span className="etiqueta-mini">Licencia</span>
@@ -364,7 +376,7 @@ export default function Pesajes() {
                 value={proveedorId}
                 onChange={setProveedorId}
                 items={opciones.proveedores}
-                plusTo="/proveedores"
+                onPlus={() => setRapido("proveedor")}
               />
               <ComboCampo etiqueta="Producto" value={productoId} onChange={setProductoId} items={opciones.productos} />
               <ComboCampo etiqueta="Origen" value={origenId} onChange={setOrigenId} items={opciones.origenes} />
@@ -514,6 +526,7 @@ export default function Pesajes() {
           )}
         </section>
       </div>
+      <PesajeDialogoRapido tipo={rapido} onCerrar={() => setRapido(null)} onExito={onCreacionRapida} />
     </ModuloPanel>
   );
 }

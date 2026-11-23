@@ -30,6 +30,7 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	usuarios := &api.UsuariosHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	choferes := &api.ChoferesHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	proveedores := &api.ProveedoresHandler{DB: db, JWTSecret: cfg.JWTSecret}
+	vehiculos := &api.VehiculosHandler{DB: db, JWTSecret: cfg.JWTSecret}
 
 	s.mux.HandleFunc("/api/auth/token", authH.Token)
 	s.mux.HandleFunc("/api/auth/login", authH.Login)
@@ -48,6 +49,7 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	s.mux.HandleFunc("/api/usuarios", usuarios.ServeHTTP)
 	s.mux.HandleFunc("/api/choferes", choferes.ServeHTTP)
 	s.mux.HandleFunc("/api/proveedores", proveedores.ServeHTTP)
+	s.mux.HandleFunc("/api/vehiculos", vehiculos.ServeHTTP)
 	s.mux.HandleFunc("/api/empresas/branding", empresas.Branding)
 	s.mux.HandleFunc("/api/sync/", sync.ServeHTTP)
 

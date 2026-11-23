@@ -67,13 +67,17 @@ func (h *ProveedoresHandler) create(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, "Cuerpo inválido")
 		return
 	}
-	if strField(body, "nombre_empresa") == "" {
-		fail(w, http.StatusBadRequest, "La empresa es requerida")
+	nombre := strField(body, "nombre")
+	empresa := strField(body, "nombre_empresa")
+	if nombre == "" && empresa == "" {
+		fail(w, http.StatusBadRequest, "Indique el nombre o la empresa (al menos uno)")
 		return
 	}
-	nombre := strField(body, "nombre")
 	if nombre == "" {
-		nombre = strField(body, "nombre_empresa")
+		nombre = empresa
+	}
+	if empresa == "" {
+		empresa = nombre
 	}
 	fecha := db.Ahora()
 	tx, err := h.DB.Begin()
@@ -96,7 +100,7 @@ func (h *ProveedoresHandler) create(w http.ResponseWriter, r *http.Request) {
 	}
 	personaID, _ := res.LastInsertId()
 	res, err = tx.Exec(`INSERT INTO proveedores (persona_id, nombre_empresa, descripcion, estado, usuario_creacion, usuario_modificacion, fecha_creacion, fecha_modificacion, version, sync_seq) VALUES (?,?,?,?,?,?,?,?,1,?)`,
-		personaID, strField(body, "nombre_empresa"), strField(body, "descripcion"), "ACTIVO", userID, userID, fecha, fecha, seq)
+		personaID, empresa, strField(body, "descripcion"), "ACTIVO", userID, userID, fecha, fecha, seq)
 	if err != nil {
 		fail(w, http.StatusInternalServerError, "Error del servidor")
 		return
