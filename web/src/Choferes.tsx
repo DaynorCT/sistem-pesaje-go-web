@@ -38,6 +38,7 @@ export default function ChoferesPage() {
   const [form, setForm] = useState<ChoferForm | null>(null);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const [dialogError, setDialogError] = useState("");
   const [loading, setLoading] = useState(true);
   const { preguntar, dialogo: dialogoConfirmar } = useConfirmar();
 
@@ -59,17 +60,22 @@ export default function ChoferesPage() {
 
   const abrirNuevo = () => {
     setForm(vacio());
+    setDialogError("");
     setError("");
     setMsg("");
   };
 
   const abrirEditar = (c: Chofer) => {
     setForm({ ...c, licencia: c.licencia || "" });
+    setDialogError("");
     setError("");
     setMsg("");
   };
 
-  const cerrarDialogo = () => setForm(null);
+  const cerrarDialogo = () => {
+    setForm(null);
+    setDialogError("");
+  };
 
   const payloadDesdeChofer = (c: Chofer, estado: string) => ({
     id: c.id,
@@ -118,6 +124,7 @@ export default function ChoferesPage() {
   const onSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
     if (!form) return;
+    setDialogError("");
     setError("");
     setMsg("");
     const estadoGuardar = form.id
@@ -131,7 +138,7 @@ export default function ChoferesPage() {
     });
     if (sessionExpired) return;
     if (!ok || !data.success) {
-      setError(data.message || "Error al guardar");
+      setDialogError(data.message || "Error al guardar");
       return;
     }
     setMsg(String(data.message || "Chofer guardado"));
@@ -192,6 +199,11 @@ export default function ChoferesPage() {
         formulario={
           form ? (
             <>
+              {dialogError ? (
+                <p className="dlg-dialog-msg mensaje-error pesaje-campo" data-ancho-completo>
+                  {dialogError}
+                </p>
+              ) : null}
               <Campo etiqueta="Nombre" requerido>
                 <input
                   className="text-field"

@@ -40,6 +40,7 @@ export default function ProveedoresPage() {
   const [form, setForm] = useState<ProveedorForm | null>(null);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const [dialogError, setDialogError] = useState("");
   const [loading, setLoading] = useState(true);
   const { preguntar, dialogo: dialogoConfirmar } = useConfirmar();
 
@@ -61,6 +62,7 @@ export default function ProveedoresPage() {
 
   const abrirNuevo = () => {
     setForm(vacio());
+    setDialogError("");
     setError("");
     setMsg("");
   };
@@ -71,11 +73,15 @@ export default function ProveedoresPage() {
       nombre_empresa: p.nombre_empresa || "",
       descripcion: p.descripcion || "",
     });
+    setDialogError("");
     setError("");
     setMsg("");
   };
 
-  const cerrarDialogo = () => setForm(null);
+  const cerrarDialogo = () => {
+    setForm(null);
+    setDialogError("");
+  };
 
   const payloadDesdeProveedor = (p: Proveedor, estado: string) => ({
     id: p.id,
@@ -125,6 +131,7 @@ export default function ProveedoresPage() {
   const onSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
     if (!form) return;
+    setDialogError("");
     setError("");
     setMsg("");
     const estadoGuardar = form.id
@@ -138,7 +145,7 @@ export default function ProveedoresPage() {
     });
     if (sessionExpired) return;
     if (!ok || !data.success) {
-      setError(data.message || "Error al guardar");
+      setDialogError(data.message || "Error al guardar");
       return;
     }
     setMsg(String(data.message || "Proveedor guardado"));
@@ -201,6 +208,11 @@ export default function ProveedoresPage() {
         formulario={
           form ? (
             <>
+              {dialogError ? (
+                <p className="dlg-dialog-msg mensaje-error pesaje-campo" data-ancho-completo>
+                  {dialogError}
+                </p>
+              ) : null}
               <Campo etiqueta="Nombre">
                 <input
                   className="text-field"

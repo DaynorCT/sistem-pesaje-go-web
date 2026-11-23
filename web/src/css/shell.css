@@ -76,6 +76,69 @@
   white-space: nowrap;
 }
 
+.shell-item-chevron {
+  font-size: 10px;
+  opacity: 0.55;
+  margin-left: 2px;
+}
+
+.shell-item-menu.activo .shell-item-chevron {
+  opacity: 0.7;
+  color: var(--pesaje-titulo);
+}
+
+.shell-menu-ancla {
+  position: relative;
+  display: inline-flex;
+}
+
+.shell-submenu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  min-width: 220px;
+  z-index: 40;
+  padding: 8px 6px;
+}
+
+.shell-submenu .menu-encabezado {
+  margin: 0;
+  padding: 4px 10px 6px;
+  color: var(--pesaje-texto-secundario);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.shell-submenu-sep {
+  border: none;
+  border-top: 1px solid var(--pesaje-borde);
+  margin: 4px 0 6px;
+}
+
+.shell-submenu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  color: #52616f;
+}
+
+.shell-submenu-item:hover {
+  background: #f3f4f6;
+}
+
+.shell-submenu-item .shell-item-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 .shell-usuario {
   position: relative;
   flex-shrink: 0;

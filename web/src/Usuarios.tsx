@@ -57,7 +57,8 @@ export default function UsuariosPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const { body } = await fetchApi<Usuario[]>("/api/usuarios");
+      const { body, sessionExpired } = await fetchApi<Usuario[]>("/api/usuarios");
+      if (sessionExpired) return;
       if (body.success) setLista(body.data || []);
       else setError(body.message || "No se pudo cargar usuarios");
     } finally {
@@ -160,11 +161,12 @@ export default function UsuariosPage() {
     };
     const method = form.id ? "PUT" : "POST";
     try {
-      const { ok, body: data } = await fetchApi("/api/usuarios", {
+      const { ok, sessionExpired, body: data } = await fetchApi("/api/usuarios", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      if (sessionExpired) return;
       if (!ok || !data.success) {
         setError(data.message || "Error al guardar");
         return;

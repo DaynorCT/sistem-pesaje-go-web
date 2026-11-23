@@ -18,7 +18,7 @@ type EmpresasHandler struct {
 func (h *EmpresasHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		h.list(w)
+		h.list(w, r)
 	case http.MethodPost:
 		h.create(w, r)
 	case http.MethodPut:
@@ -30,7 +30,11 @@ func (h *EmpresasHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *EmpresasHandler) list(w http.ResponseWriter) {
+func (h *EmpresasHandler) list(w http.ResponseWriter, r *http.Request) {
+	if _, ok := auth.UserIDFromRequest(r, h.JWTSecret); !ok {
+		fail(w, http.StatusUnauthorized, "No autorizado")
+		return
+	}
 	rows, err := h.DB.Query(`
 		SELECT id, nombre_empresa, actividad_economica, correo_electronico, telefono, logo, estado
 		FROM empresas ORDER BY id DESC`)

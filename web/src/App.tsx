@@ -8,6 +8,11 @@ import Empresa from "./Empresa";
 import Usuarios from "./Usuarios";
 import Choferes from "./Choferes";
 import Proveedores from "./Proveedores";
+import Catalogo from "./Catalogo";
+import Vehiculos from "./Vehiculos";
+import Productos from "./Productos";
+import Origenes from "./Origenes";
+import Destinos from "./Destinos";
 import "./app.css";
 import "./css/shell.css";
 
@@ -23,9 +28,15 @@ export default function App() {
         <Route path="choferes" element={<Choferes />} />
         <Route path="proveedores" element={<Proveedores />} />
         <Route path="pesajes" element={<Pesajes />} />
-        <Route path="catalogo" element={<Placeholder title="Catálogo" />} />
+        <Route path="catalogo" element={<Catalogo />} />
+        <Route path="vehiculos" element={<Vehiculos />} />
+        <Route path="productos" element={<Productos />} />
+        <Route path="origenes" element={<Origenes />} />
+        <Route path="destinos" element={<Destinos />} />
         <Route path="reportes" element={<Placeholder title="Reportes" />} />
-        <Route path="config" element={<Placeholder title="Configuración" />} />
+        <Route path="config" element={<Placeholder title="Configuración" note="Elegí Balanza o Boleta en el submenú Config." />} />
+        <Route path="config/balanza" element={<Placeholder title="Balanza" />} />
+        <Route path="config/boleta" element={<Placeholder title="Boleta" />} />
       </Route>
     </Routes>
   );

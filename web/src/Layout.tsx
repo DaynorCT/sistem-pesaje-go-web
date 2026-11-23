@@ -1,20 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, useNavigate } from "react-router-dom";
 import { fetchApi } from "./api-client";
+import ShellNav from "./components/ShellNav";
 import { useBranding } from "./hooks/useBranding";
-import { IconoInline, IconoModulo, iconoPorRuta, iconoSalirSvg, iconoUsuarioSvg } from "./iconos-modulo";
-
-const items = [
-  { to: "/inicio", label: "Inicio" },
-  { to: "/usuarios", label: "Usuarios" },
-  { to: "/empresa", label: "Empresa" },
-  { to: "/choferes", label: "Choferes" },
-  { to: "/proveedores", label: "Proveedores" },
-  { to: "/pesajes", label: "Pesaje" },
-  { to: "/catalogo", label: "Catálogo" },
-  { to: "/reportes", label: "Reportes" },
-  { to: "/config", label: "Config." },
-];
+import { IconoInline, iconoSalirSvg, iconoUsuarioSvg } from "./iconos-modulo";
 
 type User = { email?: string; nombre?: string };
 
@@ -56,18 +45,7 @@ export default function Layout() {
       <header className="barra-superior shell-cabecera">
         <div className="shell-fila-principal">
           <img className="shell-logo" src={logoSrc} alt={nombre} width={132} />
-          <nav className="shell-nav" aria-label="Módulos">
-            {items.map((it) => (
-              <NavLink
-                key={it.to}
-                to={it.to}
-                className={({ isActive }) => `shell-item-menu${isActive ? " activo" : ""}`}
-              >
-                <IconoModulo id={iconoPorRuta(it.to)} />
-                <span className="shell-item-label">{it.label}</span>
-              </NavLink>
-            ))}
-          </nav>
+          <ShellNav />
           <div className="shell-usuario" ref={menuRef}>
             <button
               type="button"

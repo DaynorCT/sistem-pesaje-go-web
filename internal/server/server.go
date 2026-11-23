@@ -31,6 +31,9 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	choferes := &api.ChoferesHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	proveedores := &api.ProveedoresHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	vehiculos := &api.VehiculosHandler{DB: db, JWTSecret: cfg.JWTSecret}
+	productos := &api.CatalogoHandler{DB: db, JWTSecret: cfg.JWTSecret, Tabla: "productos", Label: "Producto"}
+	origenes := &api.CatalogoHandler{DB: db, JWTSecret: cfg.JWTSecret, Tabla: "origenes", Label: "Origen"}
+	destinos := &api.CatalogoHandler{DB: db, JWTSecret: cfg.JWTSecret, Tabla: "destinos", Label: "Destino"}
 
 	s.mux.HandleFunc("/api/auth/token", authH.Token)
 	s.mux.HandleFunc("/api/auth/login", authH.Login)
@@ -50,6 +53,9 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	s.mux.HandleFunc("/api/choferes", choferes.ServeHTTP)
 	s.mux.HandleFunc("/api/proveedores", proveedores.ServeHTTP)
 	s.mux.HandleFunc("/api/vehiculos", vehiculos.ServeHTTP)
+	s.mux.HandleFunc("/api/productos", productos.ServeHTTP)
+	s.mux.HandleFunc("/api/origenes", origenes.ServeHTTP)
+	s.mux.HandleFunc("/api/destinos", destinos.ServeHTTP)
 	s.mux.HandleFunc("/api/empresas/branding", empresas.Branding)
 	s.mux.HandleFunc("/api/sync/", sync.ServeHTTP)
 

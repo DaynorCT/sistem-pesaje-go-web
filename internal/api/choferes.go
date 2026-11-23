@@ -17,7 +17,7 @@ type ChoferesHandler struct {
 func (h *ChoferesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		h.list(w)
+		h.list(w, r)
 	case http.MethodPost:
 		h.create(w, r)
 	case http.MethodPut:
@@ -27,7 +27,11 @@ func (h *ChoferesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *ChoferesHandler) list(w http.ResponseWriter) {
+func (h *ChoferesHandler) list(w http.ResponseWriter, r *http.Request) {
+	if _, ok := auth.UserIDFromRequest(r, h.JWTSecret); !ok {
+		fail(w, http.StatusUnauthorized, "No autorizado")
+		return
+	}
 	rows, err := h.DB.Query(`
 		SELECT c.id, p.nombre, p.apellido_paterno, p.apellido_materno, p.ci, p.telefono, c.licencia, c.estado
 		FROM choferes c JOIN personas p ON p.id = c.persona_id

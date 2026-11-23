@@ -11,6 +11,10 @@ export type ModuloIconId =
   | "proveedores"
   | "pesaje"
   | "catalogo"
+  | "vehiculos"
+  | "productos"
+  | "origenes"
+  | "destinos"
   | "reportes"
   | "config";
 
@@ -22,6 +26,10 @@ const ICONOS: Record<ModuloIconId, string> = {
   proveedores: `<svg ${attrs}><path d="M3 21h18M6 21V9l6-4 6 4v12"/><path d="M10 21v-6h4v6"/></svg>`,
   pesaje: `<svg ${attrs}><path d="M4 20h16"/><path d="M6 20V8l6-3 6 3v12"/><path d="M9 12h6"/></svg>`,
   catalogo: `<svg ${attrs}><path d="M4 6h16M4 12h16M4 18h10"/><path d="m19 16 2 2 4-4"/></svg>`,
+  vehiculos: `<svg ${attrs}><path d="M5 17h14v-5H5v5z"/><path d="M5 12 7 7h10l2 5"/><circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/></svg>`,
+  productos: `<svg ${attrs}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`,
+  origenes: `<svg ${attrs}><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8z"/></svg>`,
+  destinos: `<svg ${attrs}><path d="m3 11 19-9-9 19-2-8-8-2z"/></svg>`,
   reportes: `<svg ${attrs}><path d="M6 3v18"/><path d="M12 8v13"/><path d="M18 13v8"/></svg>`,
   config: `<svg ${attrs}><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>`,
 };
@@ -40,11 +48,16 @@ const RUTA_A_ICONO: Record<string, ModuloIconId> = {
   "/proveedores": "proveedores",
   "/pesajes": "pesaje",
   "/catalogo": "catalogo",
+  "/vehiculos": "vehiculos",
+  "/productos": "productos",
+  "/origenes": "origenes",
+  "/destinos": "destinos",
   "/reportes": "reportes",
   "/config": "config",
 };
 
 export function iconoPorRuta(path: string): ModuloIconId {
+  if (path.startsWith("/config/")) return "config";
   return RUTA_A_ICONO[path] ?? "inicio";
 }
 

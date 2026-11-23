@@ -42,7 +42,8 @@ export default function EmpresaPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const { body } = await fetchApi<Empresa[]>("/api/empresas");
+      const { body, sessionExpired } = await fetchApi<Empresa[]>("/api/empresas");
+      if (sessionExpired) return;
       if (body.success) setLista(body.data || []);
       else setError(body.message || "No se pudo cargar empresas");
     } finally {
@@ -85,11 +86,12 @@ export default function EmpresaPage() {
     setError("");
     setMsg("");
     try {
-      const { ok, body: data } = await fetchApi("/api/empresas", {
+      const { ok, sessionExpired, body: data } = await fetchApi("/api/empresas", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payloadDesdeEmpresa(e, nuevo)),
       });
+      if (sessionExpired) return;
       if (!ok || !data.success) {
         setError(data.message || "No se pudo cambiar el estado");
         setLista((prev) => [...prev]);
@@ -154,11 +156,12 @@ export default function EmpresaPage() {
     }
     const method = esEdicion ? "PUT" : "POST";
     try {
-      const { ok, status, body: data } = await fetchApi("/api/empresas", {
+      const { ok, status, sessionExpired, body: data } = await fetchApi("/api/empresas", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      if (sessionExpired) return;
       if (!ok || !data.success) {
         const msgErr =
           status === 401

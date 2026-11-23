@@ -17,7 +17,7 @@ type ProveedoresHandler struct {
 func (h *ProveedoresHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		h.list(w)
+		h.list(w, r)
 	case http.MethodPost:
 		h.create(w, r)
 	case http.MethodPut:
@@ -27,7 +27,11 @@ func (h *ProveedoresHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *ProveedoresHandler) list(w http.ResponseWriter) {
+func (h *ProveedoresHandler) list(w http.ResponseWriter, r *http.Request) {
+	if _, ok := auth.UserIDFromRequest(r, h.JWTSecret); !ok {
+		fail(w, http.StatusUnauthorized, "No autorizado")
+		return
+	}
 	rows, err := h.DB.Query(`
 		SELECT pr.id, pr.nombre_empresa, pr.descripcion, pr.estado,
 		COALESCE(p.nombre,'') nombre, COALESCE(p.apellido_paterno,'') apellido_paterno,
