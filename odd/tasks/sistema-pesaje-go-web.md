@@ -7,7 +7,7 @@ Servidor web compatible con `pesaje-go` (auth token, `/api/pesajes`, `/api/sync/
 S1. Stack: Go (`cmd/web`) + SQLite servidor + Vite; escritorio Wails sigue siendo cliente de báscula.
 S2. Menú web (fases): Inicio, Usuarios, Empresa, Choferes, Proveedores, Pesaje/catálogo, Reportes, Config.
 S3. Contrato escritorio: `POST /api/auth/token` (`usuario`,`contrasena`); cookies `access_token`/`refresh_token`; `POST /api/pesajes`; `GET|POST /api/pesajes/ultimo-peso`; `GET /api/sync/{recurso}?since=`.
-S4. Login Vite réplica visual de `sistema-pesaje-next` (slate, card centrada, branding empresa).
+S4. Login Vite réplica visual de `pesaje-go` (`login.ts`, logo `logo-pesaje.jpg`, tema naranja).
 
 ## Tasks
 

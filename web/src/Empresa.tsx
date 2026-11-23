@@ -1,4 +1,8 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { fetchApi } from "./api-client";
+import { AbmModulo } from "./components/AbmModulo";
+import { Campo } from "./components/Campo";
+import { EstadoEtiqueta, TablaBtnIcono } from "./tablas-acciones";
 
 type Empresa = {
   id: number;
@@ -10,18 +14,32 @@ type Empresa = {
   estado: string;
 };
 
+const vacia = (): Empresa => ({
+  id: 0,
+  nombre_empresa: "",
+  actividad_economica: "",
+  correo_electronico: "",
+  telefono: "",
+  logo: "",
+  estado: "ACTIVO",
+});
+
 export default function EmpresaPage() {
   const [lista, setLista] = useState<Empresa[]>([]);
-  const [editing, setEditing] = useState<Empresa | null>(null);
-  const [logoPreview, setLogoPreview] = useState("");
+  const [form, setForm] = useState<Empresa | null>(null);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const res = await fetch("/api/empresas");
-    const data = await res.json();
-    if (data.success) setLista(data.data || []);
+    setLoading(true);
+    try {
+      const { body } = await fetchApi<Empresa[]>("/api/empresas");
+      if (body.success) setLista(body.data || []);
+      else setError(body.message || "No se pudo cargar empresas");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -29,156 +47,134 @@ export default function EmpresaPage() {
   }, []);
 
   const abrirNueva = () => {
-    setEditing({
-      id: 0,
-      nombre_empresa: "",
-      actividad_economica: "",
-      correo_electronico: "",
-      telefono: "",
-      logo: "",
-      estado: "ACTIVO",
-    });
-    setLogoPreview("");
+    setForm(vacia());
+    setError("");
+    setMsg("");
   };
 
   const abrirEditar = (e: Empresa) => {
-    setEditing(e);
-    setLogoPreview(e.logo || "");
-  };
-
-  const onLogo = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    const file = ev.target.files?.[0];
-    if (!file || file.size > 2 * 1024 * 1024) {
-      setError("Logo máximo 2MB");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setLogoPreview(reader.result as string);
-    reader.readAsDataURL(file);
+    setForm(e);
+    setError("");
+    setMsg("");
   };
 
   const onSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
-    if (!editing) return;
+    if (!form) return;
     setError("");
     setMsg("");
     const payload = {
-      id: editing.id || undefined,
-      nombre_empresa: editing.nombre_empresa,
-      actividad_economica: editing.actividad_economica,
-      correo_electronico: editing.correo_electronico,
-      telefono: editing.telefono,
-      logo: logoPreview,
+      id: form.id || undefined,
+      nombre_empresa: form.nombre_empresa,
+      actividad_economica: form.actividad_economica,
+      correo_electronico: form.correo_electronico,
+      telefono: form.telefono,
+      logo: form.logo || "",
     };
-    const method = editing.id ? "PUT" : "POST";
-    const res = await fetch("/api/empresas", {
-      method,
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!data.success) {
-      setError(data.message || "Error al guardar");
-      return;
+    const method = form.id ? "PUT" : "POST";
+    try {
+      const { ok, body: data } = await fetchApi("/api/empresas", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!ok || !data.success) {
+        setError(data.message || "Error al guardar");
+        return;
+      }
+      setMsg(String(data.message || "Empresa guardada"));
+      setForm(null);
+      await load();
+    } catch {
+      setError("Error al guardar");
     }
-    setMsg(data.message);
-    setEditing(null);
-    await load();
   };
 
   const activas = lista.filter((e) => e.estado === "ACTIVO");
 
   return (
-    <section className="empresa-page">
-      <div className="empresa-header">
-        <h2>Empresa</h2>
-        <button type="button" className="btn-secondary" onClick={abrirNueva}>
-          Nueva empresa
-        </button>
-      </div>
-      {msg && <p className="msg-ok">{msg}</p>}
-      {error && <p className="login-error">{error}</p>}
-
-      {editing ? (
-        <form className="empresa-form" onSubmit={onSubmit}>
-          <label>
-            Nombre
-            <input
-              required
-              value={editing.nombre_empresa}
-              onChange={(e) => setEditing({ ...editing, nombre_empresa: e.target.value })}
-            />
-          </label>
-          <label>
-            Actividad económica
-            <input
-              required
-              value={editing.actividad_economica}
-              onChange={(e) => setEditing({ ...editing, actividad_economica: e.target.value })}
-            />
-          </label>
-          <label>
-            Correo
-            <input
-              type="email"
-              value={editing.correo_electronico || ""}
-              onChange={(e) => setEditing({ ...editing, correo_electronico: e.target.value })}
-            />
-          </label>
-          <label>
-            Teléfono
-            <input
-              value={editing.telefono || ""}
-              onChange={(e) => setEditing({ ...editing, telefono: e.target.value })}
-            />
-          </label>
-          <div className="logo-row">
-            {logoPreview ? <img src={logoPreview} alt="Logo" className="logo-preview" /> : <div className="logo-preview empty">Sin logo</div>}
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={onLogo} />
-            <button type="button" className="btn-secondary" onClick={() => fileRef.current?.click()}>
-              Subir logo
-            </button>
-          </div>
-          <div className="form-actions">
-            <button type="submit">Guardar</button>
-            <button type="button" className="btn-secondary" onClick={() => setEditing(null)}>
-              Cancelar
-            </button>
-          </div>
-        </form>
-      ) : (
-        <table className="pesajes-table">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Actividad</th>
-              <th>Estado</th>
-              <th></th>
+    <AbmModulo
+      titulo="Empresa"
+      crearTexto="Nueva empresa"
+      onCrear={abrirNueva}
+      mensaje={msg}
+      mensajeError={error}
+      loading={loading}
+      dialogoAbierto={form !== null}
+      onCerrarDialogo={() => setForm(null)}
+      tituloDialogo={form?.id ? "Editar empresa" : "Nueva empresa"}
+      onSubmit={onSubmit}
+      cantidadCampos={4}
+      columnasDialogo={2}
+      anchoDialogo="medio"
+      cabeceraTabla={
+        <>
+          <th>Nombre</th>
+          <th>Actividad</th>
+          <th className="tabla-th-estado">Estado</th>
+          <th className="tabla-th-acciones">Acciones</th>
+        </>
+      }
+      tabla={
+        activas.length === 0 ? (
+          <tr>
+            <td colSpan={4}>No hay empresa registrada. Creá una para personalizar login y boletas.</td>
+          </tr>
+        ) : (
+          activas.map((e) => (
+            <tr key={e.id}>
+              <td>{e.nombre_empresa}</td>
+              <td>{e.actividad_economica}</td>
+              <EstadoEtiqueta estado={e.estado} />
+              <td className="tabla-celda-acciones">
+                <TablaBtnIcono tip="Editar empresa" act="editar" onClick={() => abrirEditar(e)} />
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {activas.length === 0 ? (
-              <tr>
-                <td colSpan={4}>No hay empresa registrada. Creá una para personalizar login y boletas.</td>
-              </tr>
-            ) : (
-              activas.map((e) => (
-                <tr key={e.id}>
-                  <td>{e.nombre_empresa}</td>
-                  <td>{e.actividad_economica}</td>
-                  <td>{e.estado}</td>
-                  <td>
-                    <button type="button" className="btn-link" onClick={() => abrirEditar(e)}>
-                      Editar
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      )}
-    </section>
+          ))
+        )
+      }
+      formulario={
+        form ? (
+          <>
+            {error ? (
+              <p className="dlg-dialog-msg mensaje-error pesaje-campo" data-ancho-completo>
+                {error}
+              </p>
+            ) : null}
+            <Campo etiqueta="Nombre" requerido>
+              <input
+                className="text-field"
+                required
+                value={form.nombre_empresa}
+                onChange={(e) => setForm({ ...form, nombre_empresa: e.target.value })}
+              />
+            </Campo>
+            <Campo etiqueta="Actividad" requerido>
+              <input
+                className="text-field"
+                required
+                value={form.actividad_economica}
+                onChange={(e) => setForm({ ...form, actividad_economica: e.target.value })}
+              />
+            </Campo>
+            <Campo etiqueta="Correo">
+              <input
+                className="text-field"
+                type="email"
+                value={form.correo_electronico || ""}
+                onChange={(e) => setForm({ ...form, correo_electronico: e.target.value })}
+              />
+            </Campo>
+            <Campo etiqueta="Teléfono">
+              <input
+                className="text-field"
+                value={form.telefono || ""}
+                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+              />
+            </Campo>
+          </>
+        ) : null
+      }
+    />
   );
 }

@@ -1,247 +1,101 @@
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: #e2e8f0;
-}
-.login-card {
-  width: 100%;
-  max-width: 22rem;
-}
-.login-header {
+/* Login — paridad pesaje-go (frontend/src/login.ts + app.css) */
+.titulo-modulo {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--pesaje-titulo);
+  margin: 0;
   text-align: center;
 }
-.login-logo-placeholder {
-  width: 6rem;
-  height: 6rem;
-  margin: 0 auto 1rem;
+.subtitulo {
+  color: var(--pesaje-texto-secundario);
+  margin: 0;
+  text-align: center;
+}
+.tarjeta {
+  background-color: var(--pesaje-tarjeta);
+  border: 1px solid var(--pesaje-borde);
+  border-radius: 8px;
+  padding: 16px 24px;
+}
+.login-shell {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5rem;
-  background: #334155;
-  border-radius: 1rem;
-  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 32px;
+  box-sizing: border-box;
+}
+.login.tarjeta {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
 }
 .login-logo {
-  width: 6rem;
-  height: 6rem;
-  object-fit: contain;
-}
-.login-title {
-  font-weight: 300;
-  font-size: 1.75rem;
-  margin: 0;
-  color: #334155;
-}
-.login-sub {
-  margin: 0.25rem 0 0;
-  color: #64748b;
-}
-.login-divider {
-  border: none;
-  border-top: 1px solid #cbd5e1;
-  margin: 2rem 0;
-}
-.login-form label {
-  display: block;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-}
-.login-form input {
-  display: block;
-  width: 100%;
-  margin-top: 0.35rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.375rem;
-}
-.login-form button {
-  width: 100%;
-  padding: 0.6rem;
-  background: #334155;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-}
-.login-form button:disabled {
-  opacity: 0.6;
-}
-.login-error {
-  color: #b91c1c;
-  font-size: 0.875rem;
-}
-.app-shell {
   display: flex;
-  min-height: 100vh;
-}
-.sidebar {
-  width: 220px;
-  background: #1e293b;
-  color: #e2e8f0;
-  padding: 1rem 0;
-}
-.sidebar-brand {
-  font-weight: 600;
-  padding: 0 1rem 1rem;
-  border-bottom: 1px solid #334155;
-}
-.nav {
-  display: block;
-  padding: 0.5rem 1rem;
-  color: #94a3b8;
-  text-decoration: none;
-}
-.nav.active,
-.nav:hover {
-  color: #fff;
-  background: #334155;
-}
-.sidebar-user {
-  margin: 1rem 1rem 0;
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
-.content {
-  flex: 1;
-  padding: 1.5rem;
-}
-.placeholder h2 {
-  margin-top: 0;
-}
-.muted {
-  color: #64748b;
-}
-.dash-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-.dash-card {
-  background: #fff;
-  border-radius: 0.5rem;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
-}
-.dash-card-live {
-  border-left: 4px solid #334155;
-}
-.dash-peso {
-  font-size: 2rem;
-  font-weight: 600;
-  margin: 0.5rem 0;
-}
-.dash-peso-sm {
-  font-size: 2.5rem;
-}
-.peso-vivo-banner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 1rem;
-  background: #1e293b;
-  color: #e2e8f0;
-  padding: 1rem 1.25rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-.peso-vivo-banner .valor {
-  font-size: 1.75rem;
-  font-weight: 700;
-}
-.pesajes-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-.pesajes-table th,
-.pesajes-table td {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #e2e8f0;
-  text-align: left;
-  font-size: 0.875rem;
-}
-.pesajes-table th {
-  background: #f1f5f9;
-  font-weight: 600;
-}
-.empresa-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-.empresa-form {
-  max-width: 28rem;
-  background: #fff;
-  padding: 1.25rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
-}
-.empresa-form label {
-  display: block;
-  font-size: 0.875rem;
-  margin-bottom: 0.75rem;
-}
-.empresa-form input {
-  display: block;
-  width: 100%;
-  margin-top: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.375rem;
-}
-.logo-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 1rem 0;
-}
-.logo-preview {
-  width: 5rem;
-  height: 5rem;
-  object-fit: contain;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-}
-.logo-preview.empty {
-  display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
-  color: #64748b;
-  background: #f8fafc;
+  padding: 6px;
+  background-color: var(--pesaje-primario-suave);
+  border: 1px solid var(--pesaje-borde);
+  border-radius: 8px;
 }
-.form-actions {
-  display: flex;
-  gap: 0.5rem;
+.login-logo img {
+  max-width: 320px;
+  width: 100%;
+  height: auto;
+  display: block;
 }
-.form-actions button,
-.empresa-header button {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
+input.text-field,
+input.password-field {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--pesaje-tarjeta);
+  color: var(--pesaje-texto);
+  border: 1px solid var(--pesaje-borde);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: var(--pesaje-font-size);
+}
+input.text-field::placeholder,
+input.password-field::placeholder {
+  color: #8b98a5;
+}
+input.text-field:focus,
+input.password-field:focus {
+  outline: none;
+  border-color: var(--pesaje-primario);
+}
+.boton-primario {
+  background-color: var(--pesaje-primario);
+  color: white;
+  font-weight: bold;
+  border-radius: 6px;
+  padding: 8px 16px;
   border: none;
-  background: #334155;
-  color: #fff;
+  box-shadow: none;
   cursor: pointer;
 }
-.btn-secondary {
-  background: #64748b !important;
+.boton-primario:hover {
+  background-color: #7c2d0e;
 }
-.btn-link {
-  background: none;
-  border: none;
-  color: #334155;
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 0;
+.boton-primario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
-.msg-ok {
-  color: #15803d;
-  font-size: 0.875rem;
+.login-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+.login-mensaje {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 13px;
+  text-align: center;
+}
+.mensaje-error,
+.login-error {
+  color: var(--pesaje-error);
 }

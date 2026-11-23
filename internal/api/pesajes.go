@@ -19,6 +19,7 @@ type PesajesHandler struct {
 	JWTSecret string
 }
 
+// ServeHTTP mantiene compatibilidad con tests que llaman GET/POST /api/pesajes.
 func (h *PesajesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -28,6 +29,14 @@ func (h *PesajesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		fail(w, http.StatusMethodNotAllowed, "Método no permitido")
 	}
+}
+
+func (h *PesajesHandler) ListHTTP(w http.ResponseWriter, r *http.Request) {
+	h.list(w, r)
+}
+
+func (h *PesajesHandler) CreateHTTP(w http.ResponseWriter, r *http.Request) {
+	h.create(w, r)
 }
 
 func (h *PesajesHandler) list(w http.ResponseWriter, r *http.Request) {

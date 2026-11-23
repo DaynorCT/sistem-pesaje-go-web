@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -26,13 +27,27 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	ultimo := &api.UltimoPesoHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	sync := &api.SyncHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	empresas := &api.EmpresasHandler{DB: db, JWTSecret: cfg.JWTSecret}
+	usuarios := &api.UsuariosHandler{DB: db, JWTSecret: cfg.JWTSecret}
+	choferes := &api.ChoferesHandler{DB: db, JWTSecret: cfg.JWTSecret}
+	proveedores := &api.ProveedoresHandler{DB: db, JWTSecret: cfg.JWTSecret}
 
 	s.mux.HandleFunc("/api/auth/token", authH.Token)
 	s.mux.HandleFunc("/api/auth/login", authH.Login)
 	s.mux.HandleFunc("/api/auth/refresh", authH.Refresh)
-	s.mux.HandleFunc("/api/pesajes", pesajes.ServeHTTP)
-	s.mux.HandleFunc("/api/pesajes/ultimo-peso", ultimo.ServeHTTP)
+	s.mux.HandleFunc("GET /api/pesajes", pesajes.ListHTTP)
+	s.mux.HandleFunc("POST /api/pesajes", pesajes.CreateHTTP)
+	s.mux.HandleFunc("GET /api/pesajes/ultimo-peso", ultimo.ServeHTTP)
+	s.mux.HandleFunc("GET /api/pesajes/opciones", pesajes.Opciones)
+	s.mux.HandleFunc("GET /api/pesajes/grilla", pesajes.Grilla)
+	s.mux.HandleFunc("GET /api/pesajes/lookup/vehiculo/{id}", pesajes.LookupVehiculo)
+	s.mux.HandleFunc("GET /api/pesajes/lookup/chofer/{id}", pesajes.LookupChofer)
+	s.mux.HandleFunc("GET /api/pesajes/{id}", pesajes.GetByID)
+	s.mux.HandleFunc("PUT /api/pesajes/{id}", pesajes.UpdateByID)
+	s.mux.HandleFunc("POST /api/pesajes/{id}/finalizar", pesajes.FinalizarByID)
 	s.mux.HandleFunc("/api/empresas", empresas.ServeHTTP)
+	s.mux.HandleFunc("/api/usuarios", usuarios.ServeHTTP)
+	s.mux.HandleFunc("/api/choferes", choferes.ServeHTTP)
+	s.mux.HandleFunc("/api/proveedores", proveedores.ServeHTTP)
 	s.mux.HandleFunc("/api/empresas/branding", empresas.Branding)
 	s.mux.HandleFunc("/api/sync/", sync.ServeHTTP)
 
@@ -66,14 +81,23 @@ func withCORS(next http.Handler) http.Handler {
 
 // spaFileServer entrega la SPA de Vite y hace fallback a index.html.
 func spaFileServer(root string) http.Handler {
+	root = filepath.Clean(root)
 	fs := http.FileServer(http.Dir(root))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p := filepath.Join(root, filepath.Clean(r.URL.Path))
-		if strings.HasPrefix(p, root) {
-			if info, err := os.Stat(p); err == nil && !info.IsDir() {
-				fs.ServeHTTP(w, r)
-				return
-			}
+		rel := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+		if rel == "" || rel == "." || strings.Contains(rel, "..") {
+			http.ServeFile(w, r, filepath.Join(root, "index.html"))
+			return
+		}
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		if !strings.HasPrefix(filepath.Clean(p)+string(os.PathSeparator), root+string(os.PathSeparator)) &&
+			filepath.Clean(p) != root {
+			http.NotFound(w, r)
+			return
+		}
+		if info, err := os.Stat(p); err == nil && !info.IsDir() {
+			fs.ServeHTTP(w, r)
+			return
 		}
 		http.ServeFile(w, r, filepath.Join(root, "index.html"))
 	})

@@ -1,21 +1,13 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useBranding } from "./hooks/useBranding";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { logoSrc, nombre } = useBranding();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [branding, setBranding] = useState({ nombre: "Sistema de Pesaje", logo: "" });
   const [form, setForm] = useState({ usuario: "", contrasena: "" });
-
-  useEffect(() => {
-    fetch("/api/empresas/branding")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success && d.data) setBranding(d.data);
-      })
-      .catch(() => {});
-  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -30,56 +22,57 @@ export default function Login() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.message || "Error al iniciar sesión");
+        setError(data.message || "No se pudo iniciar sesión.");
         return;
       }
       localStorage.setItem("pesaje_user", JSON.stringify(data.user));
       navigate("/inicio");
     } catch {
-      setError("Error de conexión");
+      setError("No se pudo iniciar sesión.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-header">
-          {branding.logo ? (
-            <img src={branding.logo} alt="Logo" className="login-logo" />
-          ) : (
-            <div className="login-logo-placeholder">🚛</div>
-          )}
-          <h1 className="login-title">{branding.nombre}</h1>
-          <p className="login-sub">Medición y registro de peso</p>
+    <div className="login-shell root">
+      <form className="tarjeta login" onSubmit={onSubmit} autoComplete="on">
+        <div className="login-logo">
+          <img src={logoSrc} alt={nombre} width={320} />
         </div>
-        <hr className="login-divider" />
-        <form onSubmit={onSubmit} className="login-form">
-          <label>
-            Usuario
-            <input
-              type="email"
-              autoComplete="username"
-              value={form.usuario}
-              onChange={(e) => setForm({ ...form, usuario: e.target.value })}
-            />
-          </label>
-          <label>
-            Contraseña
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={form.contrasena}
-              onChange={(e) => setForm({ ...form, contrasena: e.target.value })}
-            />
-          </label>
-          {error && <p className="login-error">{error}</p>}
-          <button type="submit" disabled={loading}>
-            {loading ? "Ingresando…" : "Iniciar sesión"}
-          </button>
-        </form>
-      </div>
+        <h1 className="titulo-modulo">Ingresar al sistema</h1>
+        <p className="subtitulo">Ingrese con su usuario y contraseña para continuar.</p>
+        <input
+          className="text-field"
+          type="email"
+          name="email"
+          autoComplete="username"
+          placeholder="Correo electrónico"
+          required
+          value={form.usuario}
+          onChange={(e) => setForm({ ...form, usuario: e.target.value })}
+        />
+        <input
+          className="password-field"
+          type="password"
+          name="password"
+          autoComplete="current-password"
+          placeholder="Contraseña"
+          required
+          value={form.contrasena}
+          onChange={(e) => setForm({ ...form, contrasena: e.target.value })}
+        />
+        <p
+          className={error ? "login-mensaje mensaje-error" : "login-mensaje"}
+          role="alert"
+          aria-live="polite"
+        >
+          {error}
+        </p>
+        <button type="submit" className="boton-primario login-submit" disabled={loading}>
+          {loading ? "Ingresando…" : "Ingresar"}
+        </button>
+      </form>
     </div>
   );
 }

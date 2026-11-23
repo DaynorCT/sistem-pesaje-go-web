@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"sistema-pesaje-web/internal/api"
@@ -86,5 +87,32 @@ func TestPesajesEscritorio(t *testing.T) {
 	_ = json.Unmarshal(gRec.Body.Bytes(), &live)
 	if live["peso"] != float64(12345) {
 		t.Fatalf("peso vivo %v", live["peso"])
+	}
+
+	// Pesaje EN_PROCESO para finalizar desde la web
+	procBody, _ := json.Marshal(map[string]any{
+		"peso_bruto":     25000,
+		"tara":           8000,
+		"estado_balanza": "EN_PROCESO",
+	})
+	procReq := httptest.NewRequest(http.MethodPost, "/api/pesajes", bytes.NewReader(procBody))
+	procReq.Header.Set("Content-Type", "application/json")
+	procReq.Header.Set("Cookie", "access_token="+access)
+	procRec := httptest.NewRecorder()
+	h.ServeHTTP(procRec, procReq)
+	if procRec.Code != http.StatusOK {
+		t.Fatalf("pesaje proceso %d %s", procRec.Code, procRec.Body.String())
+	}
+	var procResp map[string]any
+	_ = json.Unmarshal(procRec.Body.Bytes(), &procResp)
+	id := int64(procResp["id"].(float64))
+
+	finReq := httptest.NewRequest(http.MethodPost, "/api/pesajes/"+strconv.FormatInt(id, 10)+"/finalizar", nil)
+	finReq.Header.Set("Cookie", "access_token="+access)
+	finReq.SetPathValue("id", strconv.FormatInt(id, 10))
+	finRec := httptest.NewRecorder()
+	h.FinalizarByID(finRec, finReq)
+	if finRec.Code != http.StatusOK {
+		t.Fatalf("finalizar %d %s", finRec.Code, finRec.Body.String())
 	}
 }
