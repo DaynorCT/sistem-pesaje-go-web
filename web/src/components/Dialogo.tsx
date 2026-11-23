@@ -113,6 +113,30 @@ export function Dialogo({
   return createPortal(dialog, document.body);
 }
 
+/** Cancelar + confirmar (sin form), paridad `crearDialogoConfirmar` en pesaje-go. */
+export function DialogoConfirmarAcciones({
+  onCancelar,
+  onConfirmar,
+  confirmarTexto = "CONFIRMAR",
+  cancelarTexto = "CANCELAR",
+}: {
+  onCancelar: () => void;
+  onConfirmar: () => void;
+  confirmarTexto?: string;
+  cancelarTexto?: string;
+}) {
+  return (
+    <div className="dlg-acciones">
+      <button type="button" className="boton-secundario" onClick={onCancelar}>
+        {cancelarTexto}
+      </button>
+      <button type="button" className="boton-primario" onClick={onConfirmar}>
+        {confirmarTexto}
+      </button>
+    </div>
+  );
+}
+
 export function DialogoAcciones({
   onCancelar,
   guardar = true,

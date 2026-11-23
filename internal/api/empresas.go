@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"sistema-pesaje-web/internal/auth"
 	"sistema-pesaje-web/internal/db"
@@ -65,17 +66,17 @@ func (h *EmpresasHandler) create(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, "Cuerpo inválido")
 		return
 	}
-	nombre := strField(body, "nombre_empresa")
-	actividad := strField(body, "actividad_economica")
-	if nombre == "" || actividad == "" {
-		fail(w, http.StatusBadRequest, "Nombre y actividad economica requeridos")
+	nombre := strings.TrimSpace(strField(body, "nombre_empresa"))
+	actividad := strings.TrimSpace(strField(body, "actividad_economica"))
+	if nombre == "" {
+		fail(w, http.StatusBadRequest, "El nombre de la empresa es obligatorio")
 		return
 	}
 	fecha := db.Ahora()
 	_, err := h.DB.Exec(`
 		INSERT INTO empresas (nombre_empresa, actividad_economica, correo_electronico, telefono, logo, estado, usuario_creacion, usuario_modificacion, fecha_creacion, fecha_modificacion)
 		VALUES (?, ?, ?, ?, ?, 'ACTIVO', ?, ?, ?, ?)`,
-		nombre, actividad, strField(body, "correo_electronico"), strField(body, "telefono"), strField(body, "logo"),
+		nombre, actividad, strings.TrimSpace(strField(body, "correo_electronico")), strings.TrimSpace(strField(body, "telefono")), strField(body, "logo"),
 		userID, userID, fecha, fecha)
 	if err != nil {
 		fail(w, http.StatusInternalServerError, "Error del servidor")
@@ -96,16 +97,39 @@ func (h *EmpresasHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := intField(body, "id")
-	nombre := strField(body, "nombre_empresa")
+	nombre := strings.TrimSpace(strField(body, "nombre_empresa"))
 	if id <= 0 || nombre == "" {
-		fail(w, http.StatusBadRequest, "Datos requeridos")
+		fail(w, http.StatusBadRequest, "ID y nombre son obligatorios")
 		return
 	}
+	estado := strings.TrimSpace(strField(body, "estado"))
+	if estado == "" {
+		estado = "ACTIVO"
+	}
+	if estado != "ACTIVO" && estado != "INACTIVO" {
+		fail(w, http.StatusBadRequest, "Estado inválido")
+		return
+	}
+	logo := strField(body, "logo")
 	fecha := db.Ahora()
 	_, err := h.DB.Exec(`
-		UPDATE empresas SET nombre_empresa = ?, actividad_economica = ?, correo_electronico = ?, telefono = ?, logo = ?, usuario_modificacion = ?, fecha_modificacion = ?
+		UPDATE empresas SET
+			nombre_empresa = ?,
+			actividad_economica = ?,
+			correo_electronico = ?,
+			telefono = ?,
+			estado = ?,
+			logo = CASE WHEN ? != '' THEN ? ELSE logo END,
+			usuario_modificacion = ?,
+			fecha_modificacion = ?
 		WHERE id = ?`,
-		nombre, strField(body, "actividad_economica"), strField(body, "correo_electronico"), strField(body, "telefono"), strField(body, "logo"), userID, fecha, id)
+		nombre,
+		strings.TrimSpace(strField(body, "actividad_economica")),
+		strings.TrimSpace(strField(body, "correo_electronico")),
+		strings.TrimSpace(strField(body, "telefono")),
+		estado,
+		logo, logo,
+		userID, fecha, id)
 	if err != nil {
 		fail(w, http.StatusInternalServerError, "Error del servidor")
 		return

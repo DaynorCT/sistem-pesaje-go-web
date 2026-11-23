@@ -34,6 +34,41 @@ export function TablaBtnIcono({ tip, onClick, act = "editar", disabled }: BtnPro
   );
 }
 
+export function estadoEsActivo(estado: string): boolean {
+  return (estado || "").toUpperCase() === "ACTIVO";
+}
+
+export function etiquetaSwitchEstado(activo: boolean): string {
+  return activo ? "ACTIVO" : "INACTIVO";
+}
+
+type EstadoSwitchProps = {
+  activo: boolean;
+  onChange: (activo: boolean) => void;
+  disabled?: boolean;
+};
+
+/** Interruptor de fila (paridad pesaje-go): no va en el diálogo. */
+export function EstadoSwitch({ activo, onChange, disabled }: EstadoSwitchProps) {
+  const txt = etiquetaSwitchEstado(activo);
+  return (
+    <label className="abm-switch" data-tip={txt}>
+      <input
+        type="checkbox"
+        className="abm-switch-input"
+        role="switch"
+        checked={activo}
+        disabled={disabled}
+        aria-label={txt}
+        aria-checked={activo}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span className="abm-switch-pista" />
+    </label>
+  );
+}
+
 export function EstadoEtiqueta({ estado }: { estado: string }) {
   const u = estado.toUpperCase();
   let clase = "estado-etiqueta--inactivo";

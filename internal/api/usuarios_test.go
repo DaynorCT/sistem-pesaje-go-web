@@ -35,8 +35,10 @@ func TestUsuariosCRUD(t *testing.T) {
 
 	h := &api.UsuariosHandler{DB: sqlDB, JWTSecret: secret}
 
+	gReq := httptest.NewRequest(http.MethodGet, "/api/usuarios", nil)
+	gReq.Header.Set("Cookie", "access_token="+access)
 	gRec := httptest.NewRecorder()
-	h.ServeHTTP(gRec, httptest.NewRequest(http.MethodGet, "/api/usuarios", nil))
+	h.ServeHTTP(gRec, gReq)
 	if gRec.Code != http.StatusOK {
 		t.Fatalf("list %d", gRec.Code)
 	}

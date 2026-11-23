@@ -2,7 +2,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { fetchApi } from "./api-client";
 import { AbmModulo } from "./components/AbmModulo";
 import { Campo } from "./components/Campo";
-import { EstadoEtiqueta, TablaBtnIcono } from "./tablas-acciones";
+import { useConfirmar } from "./components/useConfirmar";
+import { estadoEsActivo, EstadoEtiqueta, EstadoSwitch, TablaBtnIcono } from "./tablas-acciones";
 
 type Usuario = {
   id: number;
@@ -20,6 +21,17 @@ type Usuario = {
 type UsuarioForm = Usuario & { clave?: string };
 
 const ROLES = ["usuario", "administrador"];
+
+function usuarioSesionId(): number {
+  try {
+    const raw = localStorage.getItem("pesaje_user");
+    if (!raw) return 0;
+    const u = JSON.parse(raw) as { id?: number };
+    return Number(u.id) || 0;
+  } catch {
+    return 0;
+  }
+}
 
 const vacio = (): UsuarioForm => ({
   id: 0,
@@ -40,6 +52,7 @@ export default function UsuariosPage() {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const { preguntar, dialogo: dialogoConfirmar } = useConfirmar();
 
   const load = async () => {
     setLoading(true);
@@ -80,11 +93,59 @@ export default function UsuariosPage() {
 
   const cerrarDialogo = () => setForm(null);
 
+  const payloadDesdeUsuario = (u: Usuario, estado: string) => ({
+    id: u.id,
+    nombre: u.nombre || "",
+    apellido_paterno: u.apellido_paterno || "",
+    apellido_materno: u.apellido_materno || "",
+    ci: u.ci || "",
+    telefono: u.telefono || "",
+    correo: u.correo || "",
+    rol: u.rol || "usuario",
+    estado,
+  });
+
+  const cambiarEstado = async (u: Usuario, activo: boolean) => {
+    const nuevo = activo ? "ACTIVO" : "INACTIVO";
+    if (
+      !activo &&
+      !(await preguntar("Inactivar usuario", "Se cambiará el estado a INACTIVO. ¿Continuar?", {
+        confirmar: "INACTIVAR",
+      }))
+    ) {
+      setLista((prev) => [...prev]);
+      return;
+    }
+    setError("");
+    setMsg("");
+    try {
+      const { ok, sessionExpired, body: data } = await fetchApi("/api/usuarios", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadDesdeUsuario(u, nuevo)),
+      });
+      if (sessionExpired) return;
+      if (!ok || !data.success) {
+        setError(data.message || "No se pudo cambiar el estado");
+        setLista((prev) => [...prev]);
+        return;
+      }
+      setMsg(String(data.message || "Estado actualizado"));
+      await load();
+    } catch {
+      setError("No se pudo cambiar el estado");
+      setLista((prev) => [...prev]);
+    }
+  };
+
   const onSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
     if (!form) return;
     setError("");
     setMsg("");
+    const estadoGuardar = form.id
+      ? lista.find((x) => x.id === form.id)?.estado || form.estado
+      : form.estado;
     const payload = {
       id: form.id || undefined,
       nombre: form.nombre,
@@ -94,7 +155,7 @@ export default function UsuariosPage() {
       telefono: form.telefono,
       correo: form.correo,
       rol: form.rol,
-      estado: form.estado,
+      estado: estadoGuardar,
       clave: form.clave || undefined,
     };
     const method = form.id ? "PUT" : "POST";
@@ -117,10 +178,12 @@ export default function UsuariosPage() {
   };
 
   const esEdicion = Boolean(form?.id);
-  const camposVisibles = esEdicion ? 9 : 8;
+  const camposVisibles = 8;
 
   return (
-    <AbmModulo
+    <>
+      {dialogoConfirmar}
+      <AbmModulo
       titulo="Usuarios"
       crearTexto="Crear usuario"
       onCrear={abrirNuevo}
@@ -162,6 +225,11 @@ export default function UsuariosPage() {
               <EstadoEtiqueta estado={u.estado} />
               <td className="tabla-celda-acciones">
                 <TablaBtnIcono tip="Editar usuario" act="editar" onClick={() => abrirEditar(u)} />
+                <EstadoSwitch
+                  activo={estadoEsActivo(u.estado)}
+                  disabled={u.id === usuarioSesionId()}
+                  onChange={(activo) => void cambiarEstado(u, activo)}
+                />
               </td>
             </tr>
           ))
@@ -246,21 +314,10 @@ export default function UsuariosPage() {
                 ))}
               </select>
             </Campo>
-            {esEdicion ? (
-              <Campo etiqueta="Estado">
-                <select
-                  className="combo-web"
-                  value={form.estado}
-                  onChange={(e) => setForm({ ...form, estado: e.target.value })}
-                >
-                  <option value="ACTIVO">ACTIVO</option>
-                  <option value="INACTIVO">INACTIVO</option>
-                </select>
-              </Campo>
-            ) : null}
           </>
         ) : null
       }
     />
+    </>
   );
 }

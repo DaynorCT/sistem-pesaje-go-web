@@ -20,7 +20,7 @@ type UsuariosHandler struct {
 func (h *UsuariosHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		h.list(w)
+		h.list(w, r)
 	case http.MethodPost:
 		h.create(w, r)
 	case http.MethodPut:
@@ -30,7 +30,11 @@ func (h *UsuariosHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *UsuariosHandler) list(w http.ResponseWriter) {
+func (h *UsuariosHandler) list(w http.ResponseWriter, r *http.Request) {
+	if _, ok := auth.UserIDFromRequest(r, h.JWTSecret); !ok {
+		fail(w, http.StatusUnauthorized, "No autorizado")
+		return
+	}
 	rows, err := h.DB.Query(`
 		SELECT u.id, p.nombre, p.apellido_paterno, p.apellido_materno, p.ci, u.email, u.rol, p.telefono, u.estado
 		FROM usuarios u JOIN personas p ON p.id = u.persona_id
@@ -139,7 +143,8 @@ func (h *UsuariosHandler) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UsuariosHandler) update(w http.ResponseWriter, r *http.Request) {
-	if _, ok := auth.UserIDFromRequest(r, h.JWTSecret); !ok {
+	actorID, ok := auth.UserIDFromRequest(r, h.JWTSecret)
+	if !ok {
 		fail(w, http.StatusUnauthorized, "No autorizado")
 		return
 	}
@@ -166,6 +171,10 @@ func (h *UsuariosHandler) update(w http.ResponseWriter, r *http.Request) {
 	estado := strings.TrimSpace(strField(body, "estado"))
 	if estado == "" {
 		estado = "ACTIVO"
+	}
+	if int64(id) == actorID && strings.EqualFold(estado, "INACTIVO") {
+		fail(w, http.StatusBadRequest, "No puede inactivar su propio usuario.")
+		return
 	}
 	clavePlana := strField(body, "clave")
 	if clavePlana == "" {

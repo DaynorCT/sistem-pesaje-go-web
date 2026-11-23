@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { fetchApi } from "./api-client";
 import { useBranding } from "./hooks/useBranding";
 import { IconoInline, IconoModulo, iconoPorRuta, iconoSalirSvg, iconoUsuarioSvg } from "./iconos-modulo";
 
@@ -23,6 +24,13 @@ export default function Layout() {
   const user = JSON.parse(localStorage.getItem("pesaje_user") || "null") as User | null;
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    void fetchApi("/api/choferes").then(({ sessionExpired }) => {
+      if (sessionExpired) navigate("/login", { replace: true });
+    });
+  }, [user, navigate]);
 
   useEffect(() => {
     const cerrar = (ev: MouseEvent) => {
