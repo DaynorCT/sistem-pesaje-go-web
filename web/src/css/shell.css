@@ -791,8 +791,14 @@ table.tabla-modulo td.tabla-celda-acciones {
   gap: 8px;
 }
 
-.inicio-atalhos button {
+.inicio-atalhos button,
+.inicio-atalhos .inicio-link-btn {
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .inicio-panel--grafico {

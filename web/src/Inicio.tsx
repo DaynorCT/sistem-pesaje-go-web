@@ -7,99 +7,65 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { fetchApi } from "./api-client";
 import ModuloPanel from "./components/ModuloPanel";
 
+type PuntoDia = { fecha: string; cantidad: number };
+
+type Resumen = {
+  pesajesTotal: number;
+  pesajesHoy: number;
+  pesajesEnProceso: number;
+  pesajesFinalizadosHoy: number;
+  vehiculosActivos: number;
+  productosActivos: number;
+  choferesActivos: number;
+  proveedoresActivos: number;
+  ultimos7Dias: PuntoDia[];
+};
+
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
-
-type Pesaje = { fecha_creacion?: string; estado_balanza?: string };
-
-function diaLocal(iso?: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
-  return d.toISOString().slice(0, 10);
-}
-
-function hoyLocal(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function ultimos7Dias(): string[] {
-  const out: string[] = [];
-  const base = new Date();
-  base.setHours(12, 0, 0, 0);
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(base);
-    d.setDate(d.getDate() - i);
-    out.push(d.toISOString().slice(0, 10));
-  }
-  return out;
-}
 
 export default function Inicio() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const [error, setError] = useState("");
-  const [pesoVivo, setPesoVivo] = useState(0);
-  const [kpis, setKpis] = useState({
-    hoy: 0,
-    proceso: 0,
-    finalizadosHoy: 0,
-    total: 0,
-  });
-  const [puntos7, setPuntos7] = useState<{ fecha: string; cantidad: number }[]>([]);
+  const [resumen, setResumen] = useState<Resumen | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [vivo, lista] = await Promise.all([
-          fetch("/api/pesajes/ultimo-peso").then((r) => r.json()),
-          fetch("/api/pesajes", { credentials: "include" }).then((r) => r.json()),
-        ]);
-        if (vivo.success) setPesoVivo(Number(vivo.peso) || 0);
-        const rows: Pesaje[] = lista.success && Array.isArray(lista.data) ? lista.data : [];
-        const hoy = hoyLocal();
-        let proceso = 0;
-        let finalizadosHoy = 0;
-        let hoyCount = 0;
-        const map = new Map<string, number>();
-        for (const f of ultimos7Dias()) map.set(f, 0);
-        for (const p of rows) {
-          const dia = diaLocal(p.fecha_creacion);
-          if (dia === hoy) hoyCount++;
-          const est = (p.estado_balanza || "").toLowerCase();
-          if (est.includes("proceso")) proceso++;
-          if (dia === hoy && (est.includes("final") || est.includes("cerrado"))) finalizadosHoy++;
-          if (map.has(dia)) map.set(dia, (map.get(dia) || 0) + 1);
-        }
-        setKpis({ hoy: hoyCount, proceso, finalizadosHoy, total: rows.length });
-        setPuntos7(
-          ultimos7Dias().map((fecha) => ({
-            fecha: fecha.slice(5),
-            cantidad: map.get(fecha) || 0,
-          })),
-        );
-      } catch {
-        setError("No se pudo cargar el resumen");
+  const cargar = useCallback(async () => {
+    try {
+      const { body, sessionExpired } = await fetchApi<Resumen>("/api/inicio/resumen");
+      if (sessionExpired) return;
+      if (body.success && body.data) {
+        setResumen(body.data);
+        setError("");
+      } else {
+        setError(body.message || "No se pudo cargar el resumen");
       }
-    };
-    load();
-    const t = setInterval(async () => {
-      const vivo = await fetch("/api/pesajes/ultimo-peso").then((r) => r.json());
-      if (vivo.success) setPesoVivo(Number(vivo.peso) || 0);
-    }, 2000);
-    return () => clearInterval(t);
+    } catch {
+      setError("No se pudo cargar el resumen");
+    }
   }, []);
 
   useEffect(() => {
+    void cargar();
+    const timer = window.setInterval(() => void cargar(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [cargar]);
+
+  const puntos7 = resumen?.ultimos7Dias ?? [];
+
+  useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || puntos7.length === 0) return;
     const primario =
-      getComputedStyle(document.documentElement).getPropertyValue("--pesaje-primario").trim() || "#9a3412";
+      getComputedStyle(document.documentElement).getPropertyValue("--pesaje-primario").trim() ||
+      "#9a3412";
     const suave =
-      getComputedStyle(document.documentElement).getPropertyValue("--pesaje-primario-suave").trim() || "#f6ece6";
+      getComputedStyle(document.documentElement).getPropertyValue("--pesaje-primario-suave").trim() ||
+      "#f6ece6";
     chartRef.current?.destroy();
     chartRef.current = new Chart(canvas, {
       type: "bar",
@@ -121,10 +87,11 @@ export default function Inicio() {
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          y: { beginAtZero: true, ticks: { stepSize: 1 } },
+          y: { beginAtZero: true, ticks: { precision: 0 } },
         },
       },
     });
+    requestAnimationFrame(() => chartRef.current?.resize());
     return () => {
       chartRef.current?.destroy();
       chartRef.current = null;
@@ -132,22 +99,23 @@ export default function Inicio() {
   }, [puntos7]);
 
   const kpiItems = [
-    { label: "Pesajes hoy", valor: kpis.hoy, destacado: true },
-    { label: "En proceso", valor: kpis.proceso },
-    { label: "Finalizados hoy", valor: kpis.finalizadosHoy },
-    { label: "Total histórico", valor: kpis.total },
+    { label: "Pesajes hoy", valor: resumen?.pesajesHoy ?? "—", destacado: true },
+    { label: "En proceso", valor: resumen?.pesajesEnProceso ?? "—" },
+    { label: "Finalizados hoy", valor: resumen?.pesajesFinalizadosHoy ?? "—" },
+    { label: "Total histórico", valor: resumen?.pesajesTotal ?? "—" },
+  ];
+
+  const catalogos: ReadonlyArray<readonly [string, number | string]> = [
+    ["Vehículos", resumen?.vehiculosActivos ?? "—"],
+    ["Productos", resumen?.productosActivos ?? "—"],
+    ["Choferes", resumen?.choferesActivos ?? "—"],
+    ["Proveedores", resumen?.proveedoresActivos ?? "—"],
   ];
 
   return (
-    <ModuloPanel title="Inicio" className="inicio-abm">
+    <ModuloPanel titulo="Inicio" className="inicio-abm">
       {error ? <p className="abm-mensaje mensaje-error login-error">{error}</p> : null}
       <div className="inicio-dashboard">
-        <section className="tarjeta inicio-panel">
-          <h3 className="titulo-tarjeta">Peso en vivo (escritorio)</h3>
-          <div className="display-peso">
-            <span className="valor-peso">{pesoVivo.toLocaleString()} kg</span>
-          </div>
-        </section>
         <section className="tarjeta inicio-panel">
           <h3 className="titulo-tarjeta">Resumen del día</h3>
           <div className="inicio-kpis">
@@ -159,10 +127,10 @@ export default function Inicio() {
             ))}
           </div>
           <div className="inicio-atalhos">
-            <Link to="/pesajes" className="boton-primario" style={{ textDecoration: "none", display: "inline-block" }}>
+            <Link to="/pesajes" className="boton-primario inicio-link-btn">
               Ir a Pesaje
             </Link>
-            <Link to="/reportes" className="boton-secundario" style={{ textDecoration: "none", display: "inline-block" }}>
+            <Link to="/reportes" className="boton-secundario inicio-link-btn">
               Reportes
             </Link>
           </div>
@@ -176,19 +144,13 @@ export default function Inicio() {
         <section className="tarjeta inicio-panel">
           <h3 className="titulo-tarjeta">Catálogos activos</h3>
           <dl className="inicio-grid inicio-grid--catalogos">
-            {[
-              ["Vehículos", "—"],
-              ["Productos", "—"],
-              ["Choferes", "—"],
-              ["Proveedores", "—"],
-            ].map(([label, n]) => (
+            {catalogos.map(([label, n]) => (
               <div key={label}>
                 <dt className="subtitulo">{label}</dt>
                 <dd className="inicio-valor">{n}</dd>
               </div>
             ))}
           </dl>
-          <p className="modulo-vacio">Los totales de catálogo se sincronizan desde el escritorio.</p>
         </section>
       </div>
     </ModuloPanel>

@@ -26,6 +26,7 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	pesajes := &api.PesajesHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	ultimo := &api.UltimoPesoHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	sync := &api.SyncHandler{DB: db, JWTSecret: cfg.JWTSecret}
+	inicio := &api.InicioHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	empresas := &api.EmpresasHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	usuarios := &api.UsuariosHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	choferes := &api.ChoferesHandler{DB: db, JWTSecret: cfg.JWTSecret}
@@ -48,6 +49,7 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	s.mux.HandleFunc("GET /api/pesajes/{id}", pesajes.GetByID)
 	s.mux.HandleFunc("PUT /api/pesajes/{id}", pesajes.UpdateByID)
 	s.mux.HandleFunc("POST /api/pesajes/{id}/finalizar", pesajes.FinalizarByID)
+	s.mux.HandleFunc("POST /api/pesajes/{id}/estado", pesajes.CambiarEstadoByID)
 	s.mux.HandleFunc("/api/empresas", empresas.ServeHTTP)
 	s.mux.HandleFunc("/api/usuarios", usuarios.ServeHTTP)
 	s.mux.HandleFunc("/api/choferes", choferes.ServeHTTP)
@@ -59,6 +61,7 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	s.mux.HandleFunc("/api/empresas/branding", empresas.Branding)
 	s.mux.HandleFunc("/api/sync/", sync.ServeHTTP)
 
+	s.mux.HandleFunc("/api/inicio/resumen", inicio.Resumen)
 	s.mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))

@@ -4,7 +4,8 @@ import { PesajeDialogoRapido, type RapidoTipo } from "./pesaje-creacion-rapida";
 import ModuloPanel from "./components/ModuloPanel";
 import { IconoModulo } from "./iconos-modulo";
 import { motivoNoFinalizar, type PesajeFila } from "./pesajes-logica";
-import { EstadoEtiqueta, TablaBtnIcono } from "./tablas-acciones";
+import { useConfirmar } from "./components/useConfirmar";
+import { EstadoEtiqueta, EstadoSwitch, TablaBtnIcono, estadoEsActivo } from "./tablas-acciones";
 import "./css/pesaje.css";
 
 type Opcion = { id: number; label: string };
@@ -126,9 +127,11 @@ export default function Pesajes() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const [rapido, setRapido] = useState<RapidoTipo | null>(null);
+  const [pesajeEdicionId, setPesajeEdicionId] = useState(0);
+  const { preguntar, dialogo: dialogoConfirmar } = useConfirmar();
 
   const pesoNeto = useMemo(() => Math.max(0, pesoBruto - pesoTara), [pesoBruto, pesoTara]);
-  const puedeCapturar = pesoVivo > 0;
+  const puedeCapturar = conectado && pesoVivo > 0;
 
   const refreshGrilla = useCallback(async () => {
     setLoading(true);
@@ -148,16 +151,42 @@ export default function Pesajes() {
   useEffect(() => {
     cargarOpciones();
     refreshGrilla();
-    const poll = setInterval(() => {
-      fetch("/api/pesajes/ultimo-peso")
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.success) setPesoVivo(Number(d.peso) || 0);
-        })
-        .catch(() => {});
-    }, 1500);
-    return () => clearInterval(poll);
   }, [cargarOpciones, refreshGrilla]);
+
+  // Peso desde planta/escritorio (GET /api/pesajes/ultimo-peso) — desactivado mientras el demo usa el switch:
+  // useEffect(() => {
+  //   const poll = setInterval(() => {
+  //     fetch("/api/pesajes/ultimo-peso")
+  //       .then((r) => r.json())
+  //       .then((d) => {
+  //         if (d.success) setPesoVivo(Number(d.peso) || 0);
+  //       })
+  //       .catch(() => {});
+  //   }, 1500);
+  //   return () => clearInterval(poll);
+  // }, []);
+
+  /** Simulador de balanza (demo): con el switch ON el peso sube/baja con ruido leve. */
+  useEffect(() => {
+    if (!conectado) {
+      setPesoVivo(0);
+      return;
+    }
+    let objetivo = 18_000 + Math.floor(Math.random() * 12_000);
+    let base = 0;
+    const tick = () => {
+      const paso = Math.min(500, Math.abs(objetivo - base));
+      base += base < objetivo ? paso : -paso;
+      if (Math.abs(objetivo - base) < 80) {
+        if (Math.random() < 0.12) objetivo = 12_000 + Math.floor(Math.random() * 20_000);
+      }
+      const ruido = Math.floor(Math.random() * 21) - 10;
+      setPesoVivo(Math.max(0, base + ruido));
+    };
+    tick();
+    const id = window.setInterval(tick, 650);
+    return () => window.clearInterval(id);
+  }, [conectado]);
 
   useEffect(() => {
     if (!choferId) {
@@ -194,7 +223,7 @@ export default function Pesajes() {
 
   function capturarBruto() {
     setPesoBruto(pesoVivo);
-    setMensaje("Peso bruto capturado desde planta.");
+    setMensaje("Peso bruto capturado (simulador).");
     setError("");
   }
 
@@ -202,47 +231,134 @@ export default function Pesajes() {
     setPesoTara(pesoVivo);
     setTaraKg(String(pesoVivo));
     setTaraManual(true);
-    setMensaje("Tara capturada desde planta.");
+    setMensaje("Tara capturada (simulador).");
     setError("");
   }
 
-  async function registrarPesaje() {
+  function cancelarEdicion() {
+    setPesajeEdicionId(0);
+    setChoferId("");
+    setVehiculoId("");
+    setProveedorId("");
+    setProductoId("");
+    setOrigenId("");
+    setDestinoId("");
+    setLicencia("");
+    setTipoVehiculo("");
+    setCosto("0");
+    setFlete("0");
+    setPesoBruto(0);
+    setPesoTara(0);
+    setTaraKg("0");
+    setTaraManual(false);
+    setMensaje("");
+    setError("");
+  }
+
+  async function cargarEdicion(p: FilaGrilla) {
+    setError("");
+    const { body } = await fetchApi<Record<string, number | string>>(`/api/pesajes/${p.id}`);
+    if (!body.success || !body.data) {
+      setError(body.message || "No se pudo cargar el pesaje");
+      return;
+    }
+    const d = body.data as Record<string, number | string>;
+    setVehiculoId(d.vehiculo_id ? String(d.vehiculo_id) : "");
+    setChoferId(d.chofer_id ? String(d.chofer_id) : "");
+    setProveedorId(d.proveedor_id ? String(d.proveedor_id) : "");
+    setProductoId(d.producto_id ? String(d.producto_id) : "");
+    setOrigenId(d.id_origen ? String(d.id_origen) : "");
+    setDestinoId(d.id_destino ? String(d.id_destino) : "");
+    setCosto(String(d.costo_bs ?? 0));
+    setFlete(String(d.flete_bs_pendiente ?? 0));
+    const bruto = Number(d.peso_bruto) || 0;
+    const tara = Number(d.tara) || 0;
+    setPesoBruto(bruto);
+    setPesoTara(tara);
+    setTaraKg(String(tara));
+    setTaraManual(tara > 0);
+    setPesajeEdicionId(p.id);
+    setMensaje(`Editando pesaje #${p.id}.`);
+  }
+
+  async function cambiarEstadoGrilla(p: FilaGrilla, activo: boolean) {
+    const eraActivo = estadoEsActivo(p.estado || "ACTIVO");
+    if (!activo) {
+      const ok = await preguntar("Inactivar pesaje", "Se cambiará el estado a INACTIVO. ¿Continuar?", {
+        confirmar: "INACTIVAR",
+      });
+      if (!ok) {
+        await refreshGrilla();
+        return;
+      }
+    } else if (!eraActivo) {
+      const ok = await preguntar("Reactivar pesaje", "¿Reactivar este pesaje?", { confirmar: "REACTIVAR" });
+      if (!ok) {
+        await refreshGrilla();
+        return;
+      }
+    }
+    const { ok, body } = await fetchApi(`/api/pesajes/${p.id}/estado`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activo }),
+    });
+    if (!ok || !body.success) {
+      setError(body.message || "No se pudo cambiar el estado");
+      await refreshGrilla();
+      return;
+    }
+    await refreshGrilla();
+  }
+
+  async function guardarPesaje() {
     setError("");
     setMensaje("");
     if (!vehiculoId) {
       setError("Seleccioná la placa (vehículo).");
       return;
     }
+    if (pesoBruto <= 0 || pesoTara <= 0 || pesoBruto <= pesoTara) {
+      setError("El peso bruto debe ser mayor que la tara.");
+      return;
+    }
+    const payload = {
+      vehiculo_id: Number(vehiculoId),
+      chofer_id: choferId ? Number(choferId) : undefined,
+      proveedor_id: proveedorId ? Number(proveedorId) : undefined,
+      producto_id: productoId ? Number(productoId) : undefined,
+      id_origen: origenId ? Number(origenId) : undefined,
+      id_destino: destinoId ? Number(destinoId) : undefined,
+      peso_bruto: pesoBruto,
+      tara: pesoTara,
+      costo_bs: Number(costo) || 0,
+      flete_bs_pendiente: Number(flete) || 0,
+      estado_balanza: "EN_PROCESO",
+    };
     try {
-      const { ok, body } = await fetchApi("/api/pesajes", {
-        method: "POST",
+      const ruta = pesajeEdicionId > 0 ? `/api/pesajes/${pesajeEdicionId}` : "/api/pesajes";
+      const metodo = pesajeEdicionId > 0 ? "PUT" : "POST";
+      const { ok, body } = await fetchApi(ruta, {
+        method: metodo,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vehiculo_id: Number(vehiculoId),
-          chofer_id: choferId ? Number(choferId) : undefined,
-          proveedor_id: proveedorId ? Number(proveedorId) : undefined,
-          producto_id: productoId ? Number(productoId) : undefined,
-          id_origen: origenId ? Number(origenId) : undefined,
-          id_destino: destinoId ? Number(destinoId) : undefined,
-          peso_bruto: pesoBruto,
-          tara: pesoTara,
-          costo_bs: Number(costo) || 0,
-          flete_bs_pendiente: Number(flete) || 0,
-          estado_balanza: "EN_PROCESO",
-        }),
+        body: JSON.stringify(payload),
       });
       if (!ok || !body.success) {
-        setError(body.message || "No se pudo registrar");
+        setError(body.message || "No se pudo guardar");
         return;
       }
-      setMensaje(String(body.message || "Pesaje registrado"));
-      setPesoBruto(0);
-      setPesoTara(0);
-      setTaraKg("0");
-      setTaraManual(false);
+      setMensaje(String(body.message || (pesajeEdicionId > 0 ? "Pesaje actualizado" : "Pesaje registrado")));
+      if (pesajeEdicionId > 0) {
+        cancelarEdicion();
+      } else {
+        setPesoBruto(0);
+        setPesoTara(0);
+        setTaraKg("0");
+        setTaraManual(false);
+      }
       await refreshGrilla();
     } catch {
-      setError("No se pudo registrar");
+      setError("No se pudo guardar");
     }
   }
 
@@ -263,20 +379,28 @@ export default function Pesajes() {
       setError(bloqueo);
       return;
     }
-    const ok = window.confirm(`¿Finalizar pesaje #${p.id}?`);
-    if (!ok) return;
-    const res = await fetch(`/api/pesajes/${p.id}/finalizar`, { method: "POST", credentials: "include" });
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      setError(data.message || "No se pudo finalizar");
+    const bruto = Number(p.peso_bruto) || 0;
+    const tara = Number(p.tara) || 0;
+    const neto = Number(p.peso_neto) || bruto - tara;
+    const acepta = await preguntar(
+      "Finalizar pesaje",
+      `¿Cerrar el pesaje #${p.id} como FINALIZADO?\nBruto: ${bruto} kg · Tara: ${tara} kg · Neto: ${neto} kg`,
+      { confirmar: "FINALIZAR" },
+    );
+    if (!acepta) return;
+    const { ok, body } = await fetchApi(`/api/pesajes/${p.id}/finalizar`, { method: "POST" });
+    if (!ok || !body.success) {
+      setError(body.message || "No se pudo finalizar");
       return;
     }
-    setMensaje(data.message || "Pesaje finalizado");
+    if (pesajeEdicionId === p.id) cancelarEdicion();
+    setMensaje(body.message || "Pesaje finalizado");
+    setError("");
     await refreshGrilla();
   }
 
   return (
-    <ModuloPanel titulo="Pesaje">
+    <ModuloPanel titulo="Pesaje" className="panel-pesaje">
       <div className="panel-pesaje">
         <div className="panel-pesaje-medio">
           <section className="tarjeta pesaje-registro">
@@ -292,7 +416,7 @@ export default function Pesajes() {
                   <span className="pesaje-icono-balanza">
                     <IconoModulo id="pesaje" />
                   </span>
-                  <label className="abm-switch pesaje-switch-balanza" data-tip="Simular conexión (web)">
+                  <label className="abm-switch pesaje-switch-balanza" data-tip="Encender simulador de balanza (demo)">
                     <input
                       type="checkbox"
                       className="abm-switch-input"
@@ -340,7 +464,7 @@ export default function Pesajes() {
                     : "subtitulo pesaje-mensaje"
               }
             >
-              {error || mensaje || "El peso en vivo llega desde el escritorio/planta."}
+              {error || mensaje || "Encendé Conexión para simular peso en vivo (demo)."}
             </p>
           </section>
 
@@ -420,8 +544,15 @@ export default function Pesajes() {
             </div>
             <div className="separador-horizontal" />
             <div className="pesaje-guardar">
-              <button type="button" className="boton-primario" onClick={registrarPesaje}>
-                REGISTRAR PESAJE
+              <button
+                type="button"
+                className={`boton-secundario${pesajeEdicionId > 0 ? "" : " oculto"}`}
+                onClick={cancelarEdicion}
+              >
+                CANCELAR
+              </button>
+              <button type="button" className="boton-primario" onClick={guardarPesaje}>
+                {pesajeEdicionId > 0 ? "GUARDAR CAMBIOS" : "REGISTRAR PESAJE"}
               </button>
             </div>
           </section>
@@ -488,7 +619,7 @@ export default function Pesajes() {
                     const finalizado = balanza === "FINALIZADO";
                     const activo = (p.estado || "ACTIVO").toUpperCase() === "ACTIVO";
                     return (
-                      <tr key={p.id}>
+                      <tr key={p.id} className={pesajeEdicionId === p.id ? "seleccionado" : undefined}>
                         <td title={String(p.id)}>{p.id}</td>
                         <td title={p.nombre_chofer}>{mayus(p.nombre_chofer)}</td>
                         <td title={p.placa}>{mayus(p.placa)}</td>
@@ -512,9 +643,23 @@ export default function Pesajes() {
                           ) : null}
                           {activo && enProceso ? (
                             <>
-                              <TablaBtnIcono tip="Editar pesaje" act="editar" disabled />
-                              <TablaBtnIcono tip="Finalizar pesaje" act="finalizar" onClick={() => finalizarPesaje(p)} />
+                              <TablaBtnIcono
+                                tip="Editar pesaje"
+                                act="editar"
+                                onClick={() => void cargarEdicion(p)}
+                              />
+                              <TablaBtnIcono
+                                tip="Finalizar pesaje"
+                                act="finalizar"
+                                onClick={() => void finalizarPesaje(p)}
+                              />
                             </>
+                          ) : null}
+                          {!finalizado ? (
+                            <EstadoSwitch
+                              activo={activo}
+                              onChange={(valor) => void cambiarEstadoGrilla(p, valor)}
+                            />
                           ) : null}
                         </td>
                       </tr>
@@ -527,6 +672,7 @@ export default function Pesajes() {
         </section>
       </div>
       <PesajeDialogoRapido tipo={rapido} onCerrar={() => setRapido(null)} onExito={onCreacionRapida} />
+      {dialogoConfirmar}
     </ModuloPanel>
   );
 }

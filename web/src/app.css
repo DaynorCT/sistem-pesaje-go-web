@@ -81,6 +81,14 @@ input.password-field:focus {
 .boton-primario:hover {
   background-color: #7c2d0e;
 }
+.oculto {
+  display: none !important;
+}
+
+.dlg-intro {
+  white-space: pre-line;
+}
+
 .boton-primario:disabled {
   opacity: 0.5;
   cursor: not-allowed;
