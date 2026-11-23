@@ -25,13 +25,15 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	pesajes := &api.PesajesHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	ultimo := &api.UltimoPesoHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	sync := &api.SyncHandler{DB: db, JWTSecret: cfg.JWTSecret}
+	empresas := &api.EmpresasHandler{DB: db, JWTSecret: cfg.JWTSecret}
 
 	s.mux.HandleFunc("/api/auth/token", authH.Token)
 	s.mux.HandleFunc("/api/auth/login", authH.Login)
 	s.mux.HandleFunc("/api/auth/refresh", authH.Refresh)
 	s.mux.HandleFunc("/api/pesajes", pesajes.ServeHTTP)
 	s.mux.HandleFunc("/api/pesajes/ultimo-peso", ultimo.ServeHTTP)
-	s.mux.HandleFunc("/api/empresas/branding", sync.Branding)
+	s.mux.HandleFunc("/api/empresas", empresas.ServeHTTP)
+	s.mux.HandleFunc("/api/empresas/branding", empresas.Branding)
 	s.mux.HandleFunc("/api/sync/", sync.ServeHTTP)
 
 	s.mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {

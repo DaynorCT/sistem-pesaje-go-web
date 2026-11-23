@@ -128,15 +128,3 @@ func jsonValue(v any) any {
 	}
 }
 
-func (h *SyncHandler) Branding(w http.ResponseWriter, r *http.Request) {
-	var nombre, logo sql.NullString
-	_ = h.DB.QueryRow(`SELECT nombre_empresa, logo FROM empresas WHERE estado = 'ACTIVO' ORDER BY id LIMIT 1`).Scan(&nombre, &logo)
-	n := "Sistema de Pesaje"
-	if nombre.Valid && nombre.String != "" {
-		n = nombre.String
-	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"success": true,
-		"data":    map[string]any{"nombre": n, "logo": logo.String},
-	})
-}
