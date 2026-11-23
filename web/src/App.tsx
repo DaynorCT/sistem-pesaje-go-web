@@ -14,6 +14,7 @@ import Productos from "./Productos";
 import Origenes from "./Origenes";
 import Destinos from "./Destinos";
 import ConfigBoleta from "./ConfigBoleta";
+import Reportes from "./Reportes";
 import "./app.css";
 import "./css/shell.css";
 
@@ -34,7 +35,7 @@ export default function App() {
         <Route path="productos" element={<Productos />} />
         <Route path="origenes" element={<Origenes />} />
         <Route path="destinos" element={<Destinos />} />
-        <Route path="reportes" element={<Placeholder title="Reportes" />} />
+        <Route path="reportes" element={<Reportes />} />
         <Route path="config" element={<Placeholder title="Configuración" note="Elegí Balanza o Boleta en el submenú Config." />} />
         <Route path="config/balanza" element={<Placeholder title="Balanza" />} />
         <Route path="config/boleta" element={<ConfigBoleta />} />

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 // Datos para PDF (paridad pesaje-go internal/datos/datos_boleta.go).
@@ -72,6 +73,60 @@ func CargarDatos(ctx context.Context, conn *sql.DB, pesajeID int64) (*Datos, err
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("pesaje no encontrado")
 	}
+	if err != nil {
+		return nil, err
+	}
+	d.Guia = guia.String
+	d.Fecha, d.Hora = partesFechaHora(fc)
+	return &d, nil
+}
+
+// CargarDatosReporte filas para PDF de reporte (solo pesajes ACTIVO; filtros opcionales).
+func CargarDatosReporte(ctx context.Context, conn *sql.DB, desde, hasta, placa string) ([]Datos, error) {
+	q := strings.Builder{}
+	q.WriteString(selectDatosBoleta)
+	q.WriteString(` WHERE p.estado = 'ACTIVO'`)
+	args := []any{}
+	if strings.TrimSpace(desde) != "" {
+		q.WriteString(` AND date(p.fecha_creacion) >= date(?)`)
+		args = append(args, strings.TrimSpace(desde))
+	}
+	if strings.TrimSpace(hasta) != "" {
+		q.WriteString(` AND date(p.fecha_creacion) <= date(?)`)
+		args = append(args, strings.TrimSpace(hasta))
+	}
+	if strings.TrimSpace(placa) != "" {
+		q.WriteString(` AND UPPER(v.placa) LIKE ?`)
+		args = append(args, "%"+strings.ToUpper(strings.TrimSpace(placa))+"%")
+	}
+	q.WriteString(` ORDER BY p.id DESC`)
+	rows, err := conn.QueryContext(ctx, q.String(), args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Datos
+	for rows.Next() {
+		d, err := scanDatosBoletaRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *d)
+	}
+	return out, rows.Err()
+}
+
+func scanDatosBoletaRow(rows *sql.Rows) (*Datos, error) {
+	var d Datos
+	var guia sql.NullString
+	var fc string
+	err := rows.Scan(
+		&d.ID, &guia, &fc,
+		&d.ChoferNombre, &d.ChoferCI, &d.ChoferLicencia,
+		&d.VehiculoPlaca, &d.VehiculoTipo, &d.ProveedorNombre,
+		&d.ProductoNombre, &d.OrigenNombre, &d.DestinoNombre, &d.Operador,
+		&d.PesoBruto, &d.Tara, &d.PesoNeto, &d.CostoBs, &d.FleteBs,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,114 @@
+.reportes-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.reportes-barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+  align-items: flex-end;
+  padding: 12px 14px;
+  background: var(--pesaje-tarjeta);
+  border: 1px solid var(--pesaje-borde);
+  border-radius: 8px;
+}
+
+.rep-filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rep-filtro--fecha {
+  width: 196px;
+}
+
+.rep-filtro--placa {
+  width: 120px;
+}
+
+.rep-fecha-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.rep-fecha-wrap .rep-fecha {
+  width: 100%;
+  padding-right: 38px;
+  text-transform: none;
+}
+
+.rep-fecha-cal {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rep-fecha-icono-visual {
+  display: inline-flex;
+  color: var(--pesaje-primario);
+  pointer-events: none;
+}
+
+.rep-fecha-cal:hover .rep-fecha-icono-visual {
+  color: var(--pesaje-titulo);
+}
+
+.rep-fecha-picker-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.rep-fecha-cal:hover {
+  background: var(--pesaje-primario-suave);
+  border-radius: 0 6px 6px 0;
+}
+
+.rep-fecha-picker-native::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.rep-filtro-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.reportes-barra button {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#tabla-reportes tbody tr {
+  cursor: pointer;
+}
+
+#tabla-reportes tbody tr.seleccionado {
+  background: var(--pesaje-primario-suave);
+}

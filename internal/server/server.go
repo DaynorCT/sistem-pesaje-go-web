@@ -36,6 +36,7 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	origenes := &api.CatalogoHandler{DB: db, JWTSecret: cfg.JWTSecret, Tabla: "origenes", Label: "Origen"}
 	destinos := &api.CatalogoHandler{DB: db, JWTSecret: cfg.JWTSecret, Tabla: "destinos", Label: "Destino"}
 	boletaCfg := &api.BoletaConfigHandler{DB: db, JWTSecret: cfg.JWTSecret}
+	reportesH := &api.ReportesHandler{DB: db, JWTSecret: cfg.JWTSecret}
 
 	s.mux.HandleFunc("/api/auth/token", authH.Token)
 	s.mux.HandleFunc("/api/auth/login", authH.Login)
@@ -64,6 +65,8 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	s.mux.HandleFunc("/api/empresas/branding", empresas.Branding)
 	s.mux.HandleFunc("/api/sync/", sync.ServeHTTP)
 
+	s.mux.HandleFunc("/api/reportes", reportesH.ServeHTTP)
+	s.mux.HandleFunc("/api/reportes/pdf", reportesH.PDF)
 	s.mux.HandleFunc("/api/inicio/resumen", inicio.Resumen)
 	s.mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
