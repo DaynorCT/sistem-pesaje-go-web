@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchApi } from "./api-client";
+import { fetchApi, fetchApiBlob } from "./api-client";
 import { PesajeDialogoRapido, type RapidoTipo } from "./pesaje-creacion-rapida";
 import ModuloPanel from "./components/ModuloPanel";
 import { IconoModulo } from "./iconos-modulo";
@@ -373,6 +373,19 @@ export default function Pesajes() {
     setError("");
   }
 
+  async function abrirBoleta(p: FilaGrilla) {
+    setError("");
+    const { ok, blob, message, sessionExpired } = await fetchApiBlob(`/api/pesajes/${p.id}/boleta`);
+    if (sessionExpired) return;
+    if (!ok || !blob) {
+      setError(message || "No se pudo generar la boleta");
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
   async function finalizarPesaje(p: FilaGrilla) {
     const bloqueo = motivoNoFinalizar(p);
     if (bloqueo) {
@@ -639,7 +652,11 @@ export default function Pesajes() {
                         <EstadoEtiqueta estado={etiquetaBalanza(p.estado_balanza)} />
                         <td className="tabla-celda-acciones">
                           {finalizado ? (
-                            <TablaBtnIcono tip="Boleta PDF" act="boleta" disabled />
+                            <TablaBtnIcono
+                              tip="Boleta PDF"
+                              act="boleta"
+                              onClick={() => void abrirBoleta(p)}
+                            />
                           ) : null}
                           {activo && enProceso ? (
                             <>

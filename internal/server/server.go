@@ -35,6 +35,7 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	productos := &api.CatalogoHandler{DB: db, JWTSecret: cfg.JWTSecret, Tabla: "productos", Label: "Producto"}
 	origenes := &api.CatalogoHandler{DB: db, JWTSecret: cfg.JWTSecret, Tabla: "origenes", Label: "Origen"}
 	destinos := &api.CatalogoHandler{DB: db, JWTSecret: cfg.JWTSecret, Tabla: "destinos", Label: "Destino"}
+	boletaCfg := &api.BoletaConfigHandler{DB: db, JWTSecret: cfg.JWTSecret}
 
 	s.mux.HandleFunc("/api/auth/token", authH.Token)
 	s.mux.HandleFunc("/api/auth/login", authH.Login)
@@ -50,6 +51,8 @@ func New(cfg config.Config, db *sql.DB) *Server {
 	s.mux.HandleFunc("PUT /api/pesajes/{id}", pesajes.UpdateByID)
 	s.mux.HandleFunc("POST /api/pesajes/{id}/finalizar", pesajes.FinalizarByID)
 	s.mux.HandleFunc("POST /api/pesajes/{id}/estado", pesajes.CambiarEstadoByID)
+	s.mux.HandleFunc("GET /api/pesajes/{id}/boleta", pesajes.BoletaPDF)
+	s.mux.HandleFunc("/api/config/boleta", boletaCfg.ServeHTTP)
 	s.mux.HandleFunc("/api/empresas", empresas.ServeHTTP)
 	s.mux.HandleFunc("/api/usuarios", usuarios.ServeHTTP)
 	s.mux.HandleFunc("/api/choferes", choferes.ServeHTTP)

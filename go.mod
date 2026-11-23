@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/jung-kurt/gofpdf/v2 v2.17.3
 	golang.org/x/crypto v0.28.0
 	modernc.org/sqlite v1.34.1
 )

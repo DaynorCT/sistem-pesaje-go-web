@@ -108,3 +108,44 @@ export async function fetchApi<T = unknown>(
 
   return { ok: res.ok, status: res.status, body };
 }
+
+export type FetchBlobResult = {
+  ok: boolean;
+  status: number;
+  blob?: Blob;
+  message?: string;
+  sessionExpired?: boolean;
+};
+
+/** Descarga binaria (PDF boleta) con refresh de sesión en 401. */
+export async function fetchApiBlob(url: string, init?: FetchApiOpts): Promise<FetchBlobResult> {
+  const { _authRetry, ...reqInit } = init ?? {};
+  const res = await fetch(url, { credentials: "include", ...reqInit });
+
+  if (res.status === 401 && !_authRetry) {
+    const renewed = await refreshAccessToken();
+    if (renewed) return fetchApiBlob(url, { ...init, _authRetry: true });
+    clearSessionCliente();
+    return { ok: false, status: 401, sessionExpired: true, message: "Sesión expirada. Volvé a ingresar." };
+  }
+
+  const ct = res.headers.get("content-type") || "";
+  if (!res.ok) {
+    if (ct.includes("application/json")) {
+      try {
+        const body = (await res.json()) as ApiBody;
+        return { ok: false, status: res.status, message: body.message || "No se pudo obtener el archivo" };
+      } catch {
+        /* ignore */
+      }
+    }
+    return { ok: false, status: res.status, message: `Error del servidor (${res.status}).` };
+  }
+
+  if (!ct.includes("application/pdf")) {
+    return { ok: false, status: res.status, message: "Respuesta inesperada (se esperaba PDF)." };
+  }
+
+  const blob = await res.blob();
+  return { ok: true, status: res.status, blob };
+}
