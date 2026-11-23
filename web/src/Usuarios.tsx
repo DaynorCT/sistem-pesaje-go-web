@@ -216,7 +216,7 @@ export default function UsuariosPage() {
           </tr>
         ) : (
           lista.map((u) => (
-            <tr key={u.id}>
+            <tr key={u.id} className={form?.id === u.id ? "seleccionado" : undefined}>
               <td>{u.ci || "—"}</td>
               <td>{u.nombre_completo || u.nombre || "—"}</td>
               <td>{u.correo || "—"}</td>

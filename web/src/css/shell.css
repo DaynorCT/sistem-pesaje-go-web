@@ -332,6 +332,14 @@ table.tabla-modulo tbody tr:hover {
   background: #f9fafb;
 }
 
+table.tabla-modulo tbody tr.seleccionado {
+  background: var(--pesaje-primario-suave);
+}
+
+table.tabla-modulo tbody tr.seleccionado:hover {
+  background: var(--pesaje-primario-suave);
+}
+
 table.tabla-modulo th.tabla-th-estado,
 table.tabla-modulo td.tabla-celda-estado {
   min-width: 96px;

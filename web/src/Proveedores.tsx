@@ -2,7 +2,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { fetchApi } from "./api-client";
 import { AbmModulo } from "./components/AbmModulo";
 import { Campo } from "./components/Campo";
-import { EstadoEtiqueta, TablaBtnIcono } from "./tablas-acciones";
+import { useConfirmar } from "./components/useConfirmar";
+import { estadoEsActivo, EstadoEtiqueta, EstadoSwitch, TablaBtnIcono } from "./tablas-acciones";
 
 type Proveedor = {
   id: number;
@@ -40,11 +41,13 @@ export default function ProveedoresPage() {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const { preguntar, dialogo: dialogoConfirmar } = useConfirmar();
 
   const load = async () => {
     setLoading(true);
     try {
-      const { body } = await fetchApi<Proveedor[]>("/api/proveedores");
+      const { body, sessionExpired } = await fetchApi<Proveedor[]>("/api/proveedores");
+      if (sessionExpired) return;
       if (body.success) setLista(body.data || []);
       else setError(body.message || "No se pudo cargar proveedores");
     } finally {
@@ -74,144 +77,184 @@ export default function ProveedoresPage() {
 
   const cerrarDialogo = () => setForm(null);
 
+  const payloadDesdeProveedor = (p: Proveedor, estado: string) => ({
+    id: p.id,
+    nombre: p.nombre || "",
+    apellido_paterno: p.apellido_paterno || "",
+    apellido_materno: p.apellido_materno || "",
+    ci: p.ci || "",
+    telefono: p.telefono || "",
+    nombre_empresa: p.nombre_empresa || "",
+    descripcion: p.descripcion || "",
+    estado,
+  });
+
+  const cambiarEstado = async (p: Proveedor, activo: boolean) => {
+    const nuevo = activo ? "ACTIVO" : "INACTIVO";
+    if (
+      !activo &&
+      !(await preguntar("Inactivar proveedor", "Se cambiará el estado a INACTIVO. ¿Continuar?", {
+        confirmar: "INACTIVAR",
+      }))
+    ) {
+      setLista((prev) => [...prev]);
+      return;
+    }
+    setError("");
+    setMsg("");
+    try {
+      const { ok, sessionExpired, body: data } = await fetchApi("/api/proveedores", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadDesdeProveedor(p, nuevo)),
+      });
+      if (sessionExpired) return;
+      if (!ok || !data.success) {
+        setError(data.message || "No se pudo cambiar el estado");
+        setLista((prev) => [...prev]);
+        return;
+      }
+      setMsg(String(data.message || "Estado actualizado"));
+      await load();
+    } catch {
+      setError("No se pudo cambiar el estado");
+      setLista((prev) => [...prev]);
+    }
+  };
+
   const onSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
     if (!form) return;
     setError("");
     setMsg("");
+    const estadoGuardar = form.id
+      ? lista.find((x) => x.id === form.id)?.estado || form.estado
+      : form.estado;
     const method = form.id ? "PUT" : "POST";
-    const res = await fetch("/api/proveedores", {
+    const { ok, sessionExpired, body: data } = await fetchApi("/api/proveedores", {
       method,
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, estado: estadoGuardar }),
     });
-    const data = await res.json();
-    if (!res.ok || !data.success) {
+    if (sessionExpired) return;
+    if (!ok || !data.success) {
       setError(data.message || "Error al guardar");
       return;
     }
-    setMsg(data.message);
+    setMsg(String(data.message || "Proveedor guardado"));
     cerrarDialogo();
     await load();
   };
 
-  const campos = form?.id ? 8 : 7;
-
   return (
-    <AbmModulo
-      titulo="Proveedores"
-      crearTexto="Crear proveedor"
-      onCrear={abrirNuevo}
-      mensaje={msg}
-      mensajeError={error}
-      loading={loading}
-      dialogoAbierto={form !== null}
-      onCerrarDialogo={cerrarDialogo}
-      tituloDialogo={form?.id ? "Editar proveedor" : "Nuevo proveedor"}
-      onSubmit={onSubmit}
-      cantidadCampos={campos}
-      scrollDialogo
-      cabeceraTabla={
-        <>
-          <th>Nombre</th>
-          <th>CI</th>
-          <th>Teléfono</th>
-          <th>Empresa</th>
-          <th>Descripción</th>
-          <th className="tabla-th-estado">Estado</th>
-          <th className="tabla-th-acciones">Acciones</th>
-        </>
-      }
-      tabla={
-        lista.length === 0 ? (
-          <tr>
-            <td colSpan={7}>No hay proveedores registrados.</td>
-          </tr>
-        ) : (
-          lista.map((p) => (
-            <tr key={p.id}>
-              <td>{nombreCompleto(p)}</td>
-              <td>{p.ci || "—"}</td>
-              <td>{p.telefono || "—"}</td>
-              <td>{p.nombre_empresa || "—"}</td>
-              <td>{p.descripcion || "—"}</td>
-              <EstadoEtiqueta estado={p.estado} />
-              <td className="tabla-celda-acciones">
-                <TablaBtnIcono tip="Editar proveedor" act="editar" onClick={() => abrirEditar(p)} />
-              </td>
-            </tr>
-          ))
-        )
-      }
-      formulario={
-        form ? (
+    <>
+      {dialogoConfirmar}
+      <AbmModulo
+        titulo="Proveedores"
+        crearTexto="Crear proveedor"
+        onCrear={abrirNuevo}
+        mensaje={msg}
+        mensajeError={error}
+        loading={loading}
+        dialogoAbierto={form !== null}
+        onCerrarDialogo={cerrarDialogo}
+        tituloDialogo={form?.id ? "Editar proveedor" : "Nuevo proveedor"}
+        onSubmit={onSubmit}
+        cantidadCampos={7}
+        scrollDialogo
+        cabeceraTabla={
           <>
-            <Campo etiqueta="Nombre">
-              <input
-                className="text-field"
-                value={form.nombre || ""}
-                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-              />
-            </Campo>
-            <Campo etiqueta="Ap. paterno">
-              <input
-                className="text-field"
-                value={form.apellido_paterno || ""}
-                onChange={(e) => setForm({ ...form, apellido_paterno: e.target.value })}
-              />
-            </Campo>
-            <Campo etiqueta="Ap. materno">
-              <input
-                className="text-field"
-                value={form.apellido_materno || ""}
-                onChange={(e) => setForm({ ...form, apellido_materno: e.target.value })}
-              />
-            </Campo>
-            <Campo etiqueta="CI">
-              <input
-                className="text-field"
-                value={form.ci || ""}
-                onChange={(e) => setForm({ ...form, ci: e.target.value })}
-              />
-            </Campo>
-            <Campo etiqueta="Teléfono">
-              <input
-                className="text-field"
-                value={form.telefono || ""}
-                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-              />
-            </Campo>
-            <Campo etiqueta="Empresa" requerido anchoCompleto>
-              <input
-                className="text-field"
-                required
-                value={form.nombre_empresa || ""}
-                onChange={(e) => setForm({ ...form, nombre_empresa: e.target.value })}
-              />
-            </Campo>
-            <Campo etiqueta="Descripción" anchoCompleto>
-              <input
-                className="text-field"
-                value={form.descripcion || ""}
-                onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-              />
-            </Campo>
-            {form.id ? (
-              <Campo etiqueta="Estado">
-                <select
-                  className="combo-web"
-                  value={form.estado}
-                  onChange={(e) => setForm({ ...form, estado: e.target.value })}
-                >
-                  <option value="ACTIVO">ACTIVO</option>
-                  <option value="INACTIVO">INACTIVO</option>
-                </select>
-              </Campo>
-            ) : null}
+            <th>Nombre</th>
+            <th>CI</th>
+            <th>Teléfono</th>
+            <th>Empresa</th>
+            <th>Descripción</th>
+            <th className="tabla-th-estado">Estado</th>
+            <th className="tabla-th-acciones">Acciones</th>
           </>
-        ) : null
-      }
-    />
+        }
+        tabla={
+          lista.length === 0 ? (
+            <tr>
+              <td colSpan={7}>No hay proveedores registrados.</td>
+            </tr>
+          ) : (
+            lista.map((p) => (
+              <tr key={p.id} className={form?.id === p.id ? "seleccionado" : undefined}>
+                <td>{nombreCompleto(p)}</td>
+                <td>{p.ci || "—"}</td>
+                <td>{p.telefono || "—"}</td>
+                <td>{p.nombre_empresa || "—"}</td>
+                <td>{p.descripcion || "—"}</td>
+                <EstadoEtiqueta estado={p.estado} />
+                <td className="tabla-celda-acciones">
+                  <TablaBtnIcono tip="Editar proveedor" act="editar" onClick={() => abrirEditar(p)} />
+                  <EstadoSwitch
+                    activo={estadoEsActivo(p.estado)}
+                    onChange={(activo) => void cambiarEstado(p, activo)}
+                  />
+                </td>
+              </tr>
+            ))
+          )
+        }
+        formulario={
+          form ? (
+            <>
+              <Campo etiqueta="Nombre">
+                <input
+                  className="text-field"
+                  value={form.nombre || ""}
+                  onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                />
+              </Campo>
+              <Campo etiqueta="Ap. paterno">
+                <input
+                  className="text-field"
+                  value={form.apellido_paterno || ""}
+                  onChange={(e) => setForm({ ...form, apellido_paterno: e.target.value })}
+                />
+              </Campo>
+              <Campo etiqueta="Ap. materno">
+                <input
+                  className="text-field"
+                  value={form.apellido_materno || ""}
+                  onChange={(e) => setForm({ ...form, apellido_materno: e.target.value })}
+                />
+              </Campo>
+              <Campo etiqueta="CI">
+                <input
+                  className="text-field"
+                  value={form.ci || ""}
+                  onChange={(e) => setForm({ ...form, ci: e.target.value })}
+                />
+              </Campo>
+              <Campo etiqueta="Teléfono">
+                <input
+                  className="text-field"
+                  value={form.telefono || ""}
+                  onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                />
+              </Campo>
+              <Campo etiqueta="Empresa" requerido anchoCompleto>
+                <input
+                  className="text-field"
+                  required
+                  value={form.nombre_empresa || ""}
+                  onChange={(e) => setForm({ ...form, nombre_empresa: e.target.value })}
+                />
+              </Campo>
+              <Campo etiqueta="Descripción" anchoCompleto>
+                <input
+                  className="text-field"
+                  value={form.descripcion || ""}
+                  onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                />
+              </Campo>
+            </>
+          ) : null
+        }
+      />
+    </>
   );
 }

@@ -214,7 +214,7 @@ export default function EmpresaPage() {
           </tr>
         ) : (
           lista.map((e) => (
-            <tr key={e.id}>
+            <tr key={e.id} className={form?.id === e.id ? "seleccionado" : undefined}>
               <td title={e.nombre_empresa}>{e.nombre_empresa}</td>
               <td title={e.actividad_economica}>{e.actividad_economica || "—"}</td>
               <td title={e.correo_electronico}>{e.correo_electronico || "—"}</td>
