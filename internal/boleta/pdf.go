@@ -6,24 +6,429 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/jung-kurt/gofpdf/v2"
 )
 
 const (
-	logoXDerMM         = 266.0 // mismo borde derecho que las líneas horizontales del cuerpo
-	logoColDerInicioMM = 155.0 // columna derecha del detalle (no invadir con el logo)
-	logoYAcreditEtiquetaMM = 19.0
-	logoYAcreditTextoMM    = 22.5
-	logoYSuperiorMM        = 25.0
-	logoLadoMaxDeseMM  = 70.0
-	logoMargenMM       = 5.0
-	logoYInferiorEncMM = 57.0
-	anchoHojaBoletaMM  = 279.4
-	altoHojaBoletaMM   = 215.9
+	pageAnchoMM   = 215.9
+	pageAltoMM    = 279.4
+	margenLateral = 9.0
+	altoMitadMM   = pageAltoMM / 2
+
+	azulR = 41
+	azulG = 98
+	azulB = 168
+
+	azulTituloR = 26
+	azulTituloG = 68
+	azulTituloB = 128
+
+	azulDatosCabR = 16
+	azulDatosCabG = 48
+	azulDatosCabB = 98
+
+	azulSuaveR = 210
+	azulSuaveG = 224
+	azulSuaveB = 242
+
+	fondoBarraR = 232
+	fondoBarraG = 236
+	fondoBarraB = 242
+	bordeBarraR = 210
+	bordeBarraG = 216
+	bordeBarraB = 224
+
+	fondoGuiaR = 233
+	fondoGuiaG = 239
+	fondoGuiaB = 245
 )
+
+// GenerarPDF boleta vertical carta: 2 comprobantes por hoja (cliente + balanza).
+func GenerarPDF(d *Datos, cfg *Config, logo []byte) ([]byte, error) {
+	if d == nil {
+		return nil, fmt.Errorf("sin datos de pesaje")
+	}
+	if cfg == nil {
+		cfg = &Config{TituloSuperior: "BOLETA DE PESAJE", Marca: "SISTEMA DE PESAJE"}
+	}
+	if len(logo) == 0 {
+		logo = LogoSistemaJPEG()
+	}
+
+	pdf := gofpdf.New("P", "mm", "Letter", "")
+	pdf.SetAutoPageBreak(false, 0)
+	pdf.AddPage()
+
+	ahora := time.Now()
+	fechaImp := ahora.Format("02/01/2006")
+	horaImp := ahora.Format("15:04")
+
+	dibujarBoletaMitad(pdf, d, cfg, logo, 0, 0, fechaImp, horaImp)
+	lineaCorteMitad(pdf)
+	dibujarBoletaMitad(pdf, d, cfg, logo, altoMitadMM, 1, fechaImp, horaImp)
+
+	var buf bytes.Buffer
+	if err := pdf.Output(&buf); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func lineaCorteMitad(pdf *gofpdf.Fpdf) {
+	pdf.SetDrawColor(190, 198, 208)
+	pdf.SetLineWidth(0.35)
+	pdf.SetDashPattern([]float64{1.5, 1.5}, 0)
+	y := altoMitadMM
+	pdf.Line(margenLateral, y, pageAnchoMM-margenLateral, y)
+	pdf.SetDashPattern(nil, 0)
+}
+
+func dibujarBoletaMitad(pdf *gofpdf.Fpdf, d *Datos, cfg *Config, logo []byte, y0 float64, copiaIdx int, fechaImp, horaImp string) {
+	x0 := margenLateral
+	ancho := pageAnchoMM - 2*margenLateral
+
+	// --- Encabezado: izquierda | centro | derecha ---
+	yEnc := y0 + 7
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetTextColor(45, 45, 48)
+	pdf.Text(x0, yEnc, sinAcentos(strings.ToUpper(cfg.Salida)))
+	pdf.SetFont("Helvetica", "", 8)
+	pdf.Text(x0, yEnc+3.5, sinAcentos(strings.ToUpper(cfg.Direccion)))
+	cel := "Cel: " + cfg.Celular1
+	if strings.TrimSpace(cfg.Celular2) != "" {
+		cel += " - " + cfg.Celular2
+	}
+	pdf.Text(x0, yEnc+7, cel)
+	pdf.Text(x0, yEnc+10.5, sinAcentos(strings.ToUpper(cfg.Ciudad)))
+
+	cx := pageAnchoMM / 2
+	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetTextColor(azulDatosCabR, azulDatosCabG, azulDatosCabB)
+	titulo := sinAcentos(strings.ToUpper(cfg.TituloSuperior))
+	centrarTexto(pdf, cx, yEnc, titulo)
+	pdf.SetFont("Helvetica", "B", 15)
+	centrarTextoEspaciado(pdf, cx, yEnc+7.5, sinAcentos(cfg.Marca), 1.2)
+	pdf.SetFont("Helvetica", "B", 9.5)
+	pdf.SetTextColor(25, 25, 28)
+	doc := sinAcentos(strings.ToUpper(cfg.TituloDocumento))
+	centrarTexto(pdf, cx, yEnc+14, doc)
+	pdf.SetTextColor(0, 0, 0)
+
+	dibujarLogoBoletaVertical(pdf, logo, cfg, y0+5, copiaIdx)
+
+	const altoBar = 8.0
+	yBar := y0 + 25
+	prefGuia, numGuia := guiaPartes(d)
+	pdf.SetFont("Helvetica", "B", 7)
+	anchoFondoGuia := pdf.GetStringWidth(prefGuia+numGuia) + 6
+	if anchoFondoGuia > ancho {
+		anchoFondoGuia = ancho
+	}
+
+	pdf.SetFillColor(fondoGuiaR, fondoGuiaG, fondoGuiaB)
+	pdf.Rect(x0, yBar, anchoFondoGuia, altoBar, "F")
+	pdf.SetDrawColor(bordeBarraR, bordeBarraG, bordeBarraB)
+	pdf.SetLineWidth(0.4)
+	pdf.Line(x0, yBar, x0+ancho, yBar)
+	pdf.Line(x0, yBar+altoBar, x0+ancho, yBar+altoBar)
+
+	dibujarGuiaEnBarraIzq(pdf, x0+3, yBar+5.2, prefGuia, numGuia)
+	pdf.SetTextColor(0, 0, 0)
+
+	// Dos columnas lado a lado (como la imagen de referencia)
+	gap := 3.5
+	colW := (ancho - gap) / 2
+	altoCol := 38.0
+	yCols := yBar + 9
+	dibujarCajaDatosColumna(pdf, x0, yCols, colW, altoCol, "DATOS DEL VEHICULO", [][2]string{
+		{"Placa", d.VehiculoPlaca},
+		{"Chofer", d.ChoferNombre},
+		{"Licencia", d.ChoferLicencia},
+		{"Proveedor", d.ProveedorNombre},
+		{"Tipo Vehiculo", d.VehiculoTipo},
+	})
+	dibujarCajaDatosColumna(pdf, x0+colW+gap, yCols, colW, altoCol, "DATOS DEL PESAJE", [][2]string{
+		{"Producto", d.ProductoNombre},
+		{"Costo Bs.", formatoBs(d.CostoBs)},
+		{"Origen", d.OrigenNombre},
+		{"Destino", d.DestinoNombre},
+		{"Flete Bs.", formatoBs(d.FleteBs)},
+	})
+
+	// Fecha / hora bajo las columnas (como mock: una franja unida visualmente)
+	yFh := yCols + altoCol + 3
+	cajaFecha(pdf, x0, yFh, ancho, 6.5)
+	pdf.SetFont("Helvetica", "", 6.5)
+	fhPes := sinAcentos(fmt.Sprintf("Fecha/Hora (Pes): %s %s", d.Fecha, d.Hora))
+	pdf.Text(x0+3, yFh+4.3, fhPes)
+	fhImp := sinAcentos(fmt.Sprintf("Fecha/Hora (Imp): %s %s", fechaImp, horaImp))
+	wfi := pdf.GetStringWidth(fhImp)
+	pdf.Text(x0+ancho-wfi-3, yFh+4.3, fhImp)
+
+	// Tres pesos
+	yPesos := yFh + 9
+	altoPeso := 20.0
+	gapP := 3.5
+	triW := (ancho - 2*gapP) / 3
+	dibujarCajaPeso(pdf, x0, yPesos, triW, altoPeso, "PESO BRUTO", formatoPesoKg(d.PesoBruto)+" kg", false)
+	dibujarCajaPeso(pdf, x0+triW+gapP, yPesos, triW, altoPeso, "PESO TARA", formatoPesoKg(d.Tara)+" kg", false)
+	dibujarCajaPeso(pdf, x0+2*(triW+gapP), yPesos, triW, altoPeso, "PESO NETO", formatoPesoKg(d.PesoNeto)+" kg", true)
+
+	yObs := yPesos + altoPeso + 6
+	pdf.SetFont("Helvetica", "", 6.5)
+	pdf.SetTextColor(60, 65, 72)
+	pdf.Text(x0, yObs, "Observaciones:")
+	pdf.SetDrawColor(205, 212, 220)
+	pdf.SetLineWidth(0.35)
+	pdf.Line(x0+24, yObs-0.8, x0+ancho, yObs-0.8)
+
+	yFirma := yObs + 9
+	mitad := (ancho - 10) / 2
+	pdf.SetDrawColor(160, 168, 178)
+	pdf.SetLineWidth(0.35)
+	pdf.Line(x0, yFirma, x0+mitad, yFirma)
+	pdf.Line(x0+mitad+10, yFirma, x0+ancho, yFirma)
+	pdf.SetFont("Helvetica", "", 6)
+	pdf.SetTextColor(90, 95, 102)
+	centrarTextoEnRango(pdf, x0, x0+mitad, yFirma+3.5, "Chofer o Productor")
+	centrarTextoEnRango(pdf, x0+mitad+10, x0+ancho, yFirma+3.5, "Operador de balanza")
+	pdf.SetTextColor(0, 0, 0)
+}
+
+// prefijoGuiaPDF = "GUIA N°:" (N + grado WinAnsi) para Helvetica core.
+const prefijoGuiaPDF = "GUIA N\xb0: "
+
+func guiaPartes(d *Datos) (prefijo, numero string) {
+	prefijo = prefijoGuiaPDF
+	g := strings.TrimSpace(d.Guia)
+	if g != "" {
+		return prefijo, sinAcentos(strings.ToUpper(g))
+	}
+	year := time.Now().Year()
+	if p := strings.Split(strings.TrimSpace(d.Fecha), "/"); len(p) == 3 {
+		if y, err := strconv.Atoi(p[2]); err == nil && y > 1900 {
+			year = y
+		}
+	}
+	return prefijo, fmt.Sprintf("PESO-%d-%06d", year, d.ID)
+}
+
+func guiaTexto(d *Datos) string {
+	p, n := guiaPartes(d)
+	return p + n
+}
+
+func centrarTextoEspaciado(pdf *gofpdf.Fpdf, cx, y float64, s string, extraMM float64) {
+	s = strings.ToUpper(strings.TrimSpace(s))
+	if s == "" {
+		return
+	}
+	pdf.SetTextColor(azulR, azulG, azulB)
+	var total float64
+	for _, r := range s {
+		if r == ' ' {
+			continue
+		}
+		total += pdf.GetStringWidth(string(r)) + extraMM
+	}
+	if total > extraMM {
+		total -= extraMM
+	}
+	x := cx - total/2
+	for _, r := range s {
+		if r == ' ' {
+			continue
+		}
+		ch := string(r)
+		pdf.Text(x, y, sinAcentos(ch))
+		x += pdf.GetStringWidth(ch) + extraMM
+	}
+}
+
+func dibujarGuiaEnBarraIzq(pdf *gofpdf.Fpdf, x, y float64, prefijo, numero string) {
+	pdf.SetFont("Helvetica", "B", 7)
+	wPref := pdf.GetStringWidth(prefijo)
+	pdf.SetTextColor(azulDatosCabR, azulDatosCabG, azulDatosCabB)
+	pdf.Text(x, y, prefijo)
+	pdf.SetTextColor(25, 28, 35)
+	pdf.Text(x+wPref, y, numero)
+}
+
+func centrarTexto(pdf *gofpdf.Fpdf, cx, y float64, s string) {
+	w := pdf.GetStringWidth(s)
+	pdf.Text(cx-w/2, y, s)
+}
+
+func centrarTextoEnRango(pdf *gofpdf.Fpdf, x1, x2, y float64, s string) {
+	w := pdf.GetStringWidth(s)
+	cx := (x1 + x2) / 2
+	pdf.Text(cx-w/2, y, s)
+}
+
+func cajaFecha(pdf *gofpdf.Fpdf, x, y, w, h float64) {
+	pdf.SetFillColor(255, 255, 255)
+	pdf.SetDrawColor(210, 216, 224)
+	pdf.SetLineWidth(0.35)
+	pdf.RoundedRect(x, y, w, h, 1.5, "1234", "FD")
+}
+
+func dibujarCajaDatosColumna(pdf *gofpdf.Fpdf, x, y, w, h float64, titulo string, filas [][2]string) {
+	const altoCab = 6.5
+	pdf.SetDrawColor(bordeBarraR, bordeBarraG, bordeBarraB)
+	pdf.SetLineWidth(0.35)
+	pdf.SetFillColor(255, 255, 255)
+	pdf.RoundedRect(x, y, w, h, 2, "1234", "FD")
+	pdf.SetFillColor(fondoBarraR, fondoBarraG, fondoBarraB)
+	pdf.RoundedRect(x, y, w, altoCab, 2, "12", "F")
+	pdf.Rect(x, y+altoCab-0.8, w, 0.8, "F")
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetTextColor(azulDatosCabR, azulDatosCabG, azulDatosCabB)
+	tit := sinAcentos(titulo)
+	pdf.Text(x+2.5, y+4.4, tit)
+
+	const (
+		etiqX    = 2.5
+		valorX   = 26.0
+		fontEtiq = 7.5
+		fontVal  = 8.0
+	)
+	bodyTop := y + altoCab + 2.5
+	bodyH := h - altoCab - 4
+	paso := bodyH / float64(len(filas))
+	const centradoFila = 0.58
+	for i, par := range filas {
+		if i > 0 {
+			sepY := bodyTop + paso*float64(i)
+			pdf.SetDrawColor(200, 208, 218)
+			pdf.SetLineWidth(0.35)
+			pdf.Line(x+2, sepY, x+w-2, sepY)
+		}
+		ry := bodyTop + paso*float64(i) + paso*centradoFila
+		etiq := sinAcentos(par[0] + ":")
+		val := textoValorBoleta(par[1])
+
+		pdf.SetFont("Helvetica", "", fontEtiq)
+		pdf.SetTextColor(88, 92, 98)
+		pdf.Text(x+etiqX, ry, etiq)
+
+		tamVal := fontVal
+		pdf.SetFont("Helvetica", "B", tamVal)
+		maxW := w - valorX - 2.5
+		for tamVal >= 5.5 && pdf.GetStringWidth(val) > maxW {
+			tamVal -= 0.5
+			pdf.SetFont("Helvetica", "B", tamVal)
+		}
+		pdf.SetTextColor(18, 20, 26)
+		pdf.Text(x+valorX, ry, val)
+	}
+	pdf.SetLineWidth(0.2)
+	pdf.SetTextColor(0, 0, 0)
+}
+
+func textoValorBoleta(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "-"
+	}
+	if esValorNumericoBoleta(s) {
+		return sinAcentos(s)
+	}
+	return sinAcentos(strings.ToUpper(s))
+}
+
+func esValorNumericoBoleta(s string) bool {
+	for i, r := range s {
+		switch {
+		case r >= '0' && r <= '9':
+		case r == '.' || r == ',':
+		case i == 0 && r == '-':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func dibujarCajaPeso(pdf *gofpdf.Fpdf, x, y, w, h float64, titulo, valor string, neto bool) {
+	if neto {
+		pdf.SetDrawColor(azulR, azulG, azulB)
+		pdf.SetLineWidth(0.6)
+		pdf.SetFillColor(232, 240, 252)
+	} else {
+		pdf.SetDrawColor(218, 224, 232)
+		pdf.SetLineWidth(0.25)
+		pdf.SetFillColor(250, 251, 253)
+	}
+	pdf.RoundedRect(x, y, w, h, 2.5, "1234", "FD")
+	pdf.SetLineWidth(0.25)
+	pdf.SetFont("Helvetica", "B", 6)
+	if neto {
+		pdf.SetTextColor(azulR, azulG, azulB)
+	} else {
+		pdf.SetTextColor(75, 80, 88)
+	}
+	centrarTextoEnRango(pdf, x, x+w, y+4.5, sinAcentos(titulo))
+	if neto {
+		pdf.SetFont("Helvetica", "B", 10.5)
+		pdf.SetTextColor(azulR, azulG, azulB)
+	} else {
+		pdf.SetFont("Helvetica", "B", 10)
+		pdf.SetTextColor(15, 18, 24)
+	}
+	centrarTextoEnRango(pdf, x, x+w, y+h*0.62, valor)
+	pdf.SetTextColor(0, 0, 0)
+}
+
+func dibujarLogoBoletaVertical(pdf *gofpdf.Fpdf, logo []byte, cfg *Config, y0 float64, copiaIdx int) {
+	xDer := pageAnchoMM - margenLateral
+	pdf.SetFont("Helvetica", "", 6)
+	pdf.SetTextColor(100, 105, 112)
+	etiq := sinAcentos("ACREDITADO POR:")
+	wE := pdf.GetStringWidth(etiq)
+	pdf.Text(xDer-wE, y0, etiq)
+
+	if len(logo) == 0 {
+		if acr := strings.TrimSpace(cfg.Acreditacion); acr != "" {
+			pdf.SetFont("Helvetica", "B", 7)
+			wa := pdf.GetStringWidth(acr)
+			pdf.Text(xDer-wa, y0+5, sinAcentos(strings.ToUpper(acr)))
+		}
+		return
+	}
+	wPx, hPx, imgType := dimensionesImagen(logo)
+	if imgType == "" || wPx <= 0 || hPx <= 0 {
+		return
+	}
+	const maxW, maxH = 42.0, 20.0
+	wMm, hMm := encajarImagen(wPx, hPx, maxW, maxH)
+	xLogo := xDer - wMm
+	colMinX := pageAnchoMM * 0.58
+	if xLogo < colMinX {
+		xLogo = colMinX
+	}
+	name := fmt.Sprintf("logo-boleta-%d", copiaIdx)
+	opts := gofpdf.ImageOptions{ImageType: imgType, ReadDpi: true}
+	_ = pdf.RegisterImageOptionsReader(name, opts, bytes.NewReader(logo))
+	pdf.ImageOptions(name, xLogo, y0+4, wMm, hMm, false, opts, 0, "")
+	pdf.SetTextColor(0, 0, 0)
+}
+
+func encajarImagen(pxAncho, pxAlto int, maxW, maxH float64) (wMm, hMm float64) {
+	proporcion := float64(pxAncho) / float64(pxAlto)
+	if maxW/proporcion <= maxH {
+		wMm = maxW
+		hMm = maxW / proporcion
+	} else {
+		hMm = maxH
+		wMm = maxH * proporcion
+	}
+	return wMm, hMm
+}
 
 func sinAcentos(s string) string {
 	var b strings.Builder
@@ -41,6 +446,8 @@ func sinAcentos(s string) string {
 			b.WriteRune('u')
 		case 'ñ', 'Ñ':
 			b.WriteRune('n')
+		case 'º':
+			b.WriteString("o")
 		default:
 			if r > unicode.MaxASCII && r != ' ' {
 				b.WriteRune('?')
@@ -50,122 +457,6 @@ func sinAcentos(s string) string {
 		}
 	}
 	return b.String()
-}
-
-func numero(n int) string {
-	return fmt.Sprintf("%d", n)
-}
-
-// GenerarPDF boleta apaisada carta (paridad pesaje-go reportes.GenerarBoleta).
-func GenerarPDF(d *Datos, cfg *Config) ([]byte, error) {
-	if d == nil {
-		return nil, fmt.Errorf("sin datos de pesaje")
-	}
-	if cfg == nil {
-		cfg = &Config{TituloSuperior: "BOLETA DE PESAJE", Marca: "SISTEMA DE PESAJE"}
-	}
-	pdf := gofpdf.NewCustom(&gofpdf.InitType{
-		UnitStr: "mm",
-		Size:    gofpdf.SizeType{Wd: 279.4, Ht: 215.9},
-	})
-	pdf.AddPage()
-	dibujarAcreditacionEncabezado(pdf, cfg)
-	dibujarLogoBoleta(pdf, LogoSistemaJPEG())
-	pdf.SetFont("Helvetica", "B", 12)
-	pdf.Text(15, 20, sinAcentos(strings.ToUpper(cfg.Salida)))
-	pdf.SetFont("Helvetica", "B", 15)
-	pdf.Text(95, 20, sinAcentos(strings.ToUpper(cfg.TituloSuperior)))
-	pdf.SetFont("Helvetica", "", 11)
-	pdf.Text(15, 25, sinAcentos(strings.ToUpper(cfg.Direccion)))
-	pdf.SetFont("Helvetica", "B", 22)
-	pdf.Text(110, 30, sinAcentos(strings.ToUpper(cfg.Marca)))
-	pdf.SetFont("Helvetica", "", 11)
-	pdf.Text(15, 30, "Cel: "+cfg.Celular1)
-	pdf.SetFont("Helvetica", "B", 15)
-	pdf.Text(108, 40, sinAcentos(strings.ToUpper(cfg.TituloDocumento)))
-	pdf.SetFont("Helvetica", "", 11)
-	pdf.Text(22, 34, cfg.Celular2)
-	pdf.Text(15, 38, sinAcentos(strings.ToUpper(cfg.Ciudad)))
-	pdf.Text(15, 56, "Guia: "+sinAcentos(strings.ToUpper(d.Guia)))
-
-	pdf.SetFont("Helvetica", "B", 13)
-	pdf.Text(15, 64, "DATOS DEL VEHICULO:")
-	pdf.Text(155, 64, "DATOS DEL PESAJE:")
-	pdf.SetFont("Helvetica", "", 12)
-	filaBoleta(pdf, 71, "Placa:", d.VehiculoPlaca, "Producto:", d.ProductoNombre)
-	filaBoleta(pdf, 78, "Chofer:", d.ChoferNombre, "Costo Bs.:", numero(d.CostoBs)+" Bs")
-	filaBoleta(pdf, 85, "Licencia:", d.ChoferLicencia, "Origen:", d.OrigenNombre)
-	filaBoleta(pdf, 92, "Proveedor:", d.ProveedorNombre, "Destino:", d.DestinoNombre)
-	filaBoleta(pdf, 99, "Tipo Vehiculo:", d.VehiculoTipo, "Flete Bs.:", numero(d.FleteBs)+" Bs")
-
-	pdf.SetFont("Helvetica", "", 11)
-	fh := fmt.Sprintf("Fecha/Hora (Pes): %s %s", d.Fecha, d.Hora)
-	pdf.Text(15, 107, sinAcentos(fh))
-	pdf.Text(155, 107, sinAcentos("Fecha/Hora (Imp): "+d.Fecha+" "+d.Hora))
-
-	pdf.SetFont("Helvetica", "B", 12)
-	pdf.Text(15, 116, "PESO BRUTO:")
-	pdf.Text(115, 116, "PESO TARA:")
-	pdf.Text(205, 116, "PESO NETO:")
-	pdf.SetFont("Helvetica", "B", 18)
-	pdf.Text(15, 122, numero(d.PesoBruto)+" kg")
-	pdf.Text(115, 122, numero(d.Tara)+" kg")
-	pdf.Text(205, 122, numero(d.PesoNeto)+" kg")
-
-	pdf.SetFont("Helvetica", "", 10)
-	pdf.Text(60, 160, "Chofer o Productor")
-	pdf.Text(187, 160, "Operador de balanza")
-
-	pdf.Line(15, 59, 266, 59)
-	pdf.Line(15, 102, 266, 102)
-	pdf.Line(15, 111, 266, 111)
-	pdf.Line(15, 126, 266, 126)
-
-	var buf bytes.Buffer
-	if err := pdf.Output(&buf); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func dibujarAcreditacionEncabezado(pdf *gofpdf.Fpdf, cfg *Config) {
-	if cfg == nil {
-		return
-	}
-	pdf.SetFont("Helvetica", "B", 8)
-	etiqueta := "ACREDITADO POR:"
-	textoDerecha(pdf, logoXDerMM, logoYAcreditEtiquetaMM, sinAcentos(etiqueta))
-	if strings.TrimSpace(cfg.Acreditacion) != "" {
-		textoDerecha(pdf, logoXDerMM, logoYAcreditTextoMM, sinAcentos(cfg.Acreditacion))
-	}
-}
-
-func textoDerecha(pdf *gofpdf.Fpdf, bordeDerXMm, y float64, s string) {
-	w := pdf.GetStringWidth(s)
-	x := bordeDerXMm - w
-	if x < logoColDerInicioMM {
-		x = logoColDerInicioMM
-	}
-	pdf.Text(x, y, s)
-}
-
-func dibujarLogoBoleta(pdf *gofpdf.Fpdf, logoJPEG []byte) {
-	if len(logoJPEG) == 0 {
-		return
-	}
-	wPx, hPx, imgType := dimensionesImagen(logoJPEG)
-	if imgType == "" || wPx <= 0 || hPx <= 0 {
-		return
-	}
-	wMm, hMm := tamanoLogoEnHoja(wPx, hPx)
-	name := "logo-boleta"
-	opts := gofpdf.ImageOptions{ImageType: imgType, ReadDpi: true}
-	_ = pdf.RegisterImageOptionsReader(name, opts, bytes.NewReader(logoJPEG))
-	xLogo := logoXDerMM - wMm
-	if xLogo < logoColDerInicioMM {
-		xLogo = logoColDerInicioMM
-	}
-	pdf.ImageOptions(name, xLogo, logoYSuperiorMM, wMm, hMm, false, opts, 0, "")
 }
 
 func dimensionesImagen(b []byte) (w, h int, imgType string) {
@@ -182,51 +473,4 @@ func dimensionesImagen(b []byte) (w, h int, imgType string) {
 		return 0, 0, ""
 	}
 	return cfg.Width, cfg.Height, imgType
-}
-
-func tamanoLogoEnHoja(pxAncho, pxAlto int) (wMm, hMm float64) {
-	cupoAncho := logoLadoMaxDeseMM
-	cupoAnchoMax := logoXDerMM - logoColDerInicioMM - logoMargenMM
-	if cupoAncho > cupoAnchoMax {
-		cupoAncho = cupoAnchoMax
-	}
-	cupoAltoEnc := logoYInferiorEncMM - logoYSuperiorMM - logoMargenMM
-	cupoAltoHoja := altoHojaBoletaMM - logoYSuperiorMM - logoMargenMM
-	cupoAlto := logoLadoMaxDeseMM
-	if cupoAlto > cupoAltoEnc {
-		cupoAlto = cupoAltoEnc
-	}
-	if cupoAlto > cupoAltoHoja {
-		cupoAlto = cupoAltoHoja
-	}
-	if cupoAncho < 1 {
-		cupoAncho = 1
-	}
-	if cupoAlto < 1 {
-		cupoAlto = 1
-	}
-	proporcion := float64(pxAncho) / float64(pxAlto)
-	if float64(pxAncho)/cupoAncho > float64(pxAlto)/cupoAlto {
-		wMm = cupoAncho
-		hMm = cupoAncho / proporcion
-	} else {
-		hMm = cupoAlto
-		wMm = cupoAlto * proporcion
-	}
-	if hMm > cupoAlto {
-		hMm = cupoAlto
-		wMm = cupoAlto * proporcion
-	}
-	if wMm > cupoAncho {
-		wMm = cupoAncho
-		hMm = cupoAncho / proporcion
-	}
-	return wMm, hMm
-}
-
-func filaBoleta(pdf *gofpdf.Fpdf, y float64, ei, vi, ed, vd string) {
-	pdf.Text(15, y, sinAcentos(ei))
-	pdf.Text(80, y, sinAcentos(strings.ToUpper(vi)))
-	pdf.Text(155, y, sinAcentos(ed))
-	pdf.Text(220, y, sinAcentos(strings.ToUpper(vd)))
 }

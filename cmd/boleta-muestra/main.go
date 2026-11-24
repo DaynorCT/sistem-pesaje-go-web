@@ -10,23 +10,23 @@ import (
 
 func main() {
 	d := &boleta.Datos{
-		ID: 42, Guia: "G-2026-001", Fecha: "23/11/2026", Hora: "14:30",
-		ChoferNombre: "Juan Perez", ChoferLicencia: "LP-12345",
-		VehiculoPlaca: "ABC-1234", VehiculoTipo: "Camion",
-		ProveedorNombre: "Agro Primavera S.R.L.",
-		ProductoNombre: "Soja", OrigenNombre: "Campo Norte", DestinoNombre: "Silo Central",
+		ID: 1, Guia: "PESO-2026-000001", Fecha: "23/11/2026", Hora: "15:37",
+		ChoferNombre: "Juan Ramon Quintana", ChoferLicencia: "RTT-567",
+		VehiculoPlaca: "RFT-87867", VehiculoTipo: "VOLVO",
+		ProveedorNombre: "JONI FERNANDES PALLI",
+		ProductoNombre: "PLATA", OrigenNombre: "EL ALTO", DestinoNombre: "ORURO - CHARQUITA",
 		Operador: "Maria Lopez",
-		PesoBruto: 45230, Tara: 15200, PesoNeto: 30030,
-		CostoBs: 150, FleteBs: 80,
+		PesoBruto: 7497, Tara: 4000, PesoNeto: 3497,
+		CostoBs: 500, FleteBs: 0,
 	}
 	cfg := &boleta.Config{
 		Salida: "Salida a Potosi", Direccion: "Tarija km 2",
-		Celular1: "2782323", Celular2: "70123456",
+		Celular1: "2782323", Celular2: "1234343",
 		Ciudad: "Potosi - Bolivia",
 		TituloSuperior: "BALANZA DE PESAJE DIGITAL",
 		Marca: "PRIMAVERA",
 		TituloDocumento: "BOLETA DE PESAJE",
-		Acreditacion: "SENASAG",
+		Acreditacion: "CALTEC",
 	}
 	b, err := boleta.GenerarPDF(d, cfg, nil)
 	if err != nil {

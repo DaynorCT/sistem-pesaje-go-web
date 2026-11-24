@@ -114,7 +114,8 @@ func (h *PesajesHandler) BoletaPDF(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusInternalServerError, "Error del servidor")
 		return
 	}
-	pdf, err := boleta.GenerarPDF(d, cfg)
+	logo := boleta.ResolverLogoParaPDF(r.Context(), h.DB)
+	pdf, err := boleta.GenerarPDF(d, cfg, logo)
 	if err != nil {
 		fail(w, http.StatusInternalServerError, err.Error())
 		return
