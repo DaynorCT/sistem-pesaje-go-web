@@ -7,10 +7,15 @@
   --pesaje-texto-secundario: #4a5568;
   --pesaje-titulo: #1a202c;
 
+  /* Primary (sistema-pesaje-next) */
   --pesaje-primario: #255ea6;
   --pesaje-primario-claro: #4a7bc7;
   --pesaje-primario-oscuro: #1a4280;
   --pesaje-primario-suave: #e8f0fa;
+
+  /* Primary legacy pesaje-go / Tema.java — usar donde haga falta el tono anterior */
+  --pesaje-primario-segundo: #9a3412;
+  --pesaje-primario-segundo-suave: #f6ece6;
 
   /* Semánticos (solo estos; paridad next --success, --warning, --info, --error) */
   --pesaje-exito: #2e7d32;
