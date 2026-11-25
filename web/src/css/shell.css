@@ -70,7 +70,6 @@
 .shell-item-menu.activo {
   background-color: var(--pesaje-nav-fondo-activo);
   color: var(--pesaje-nav-texto);
-  font-weight: 600;
 }
 
 /* Catálogo / Config: título activo en primary (como next) */
