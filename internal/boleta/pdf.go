@@ -20,17 +20,17 @@ const (
 	margenLateral = 9.0
 	altoMitadMM   = pageAltoMM / 2
 
-	azulR = 41
-	azulG = 98
-	azulB = 168
+	azulR = 37
+	azulG = 94
+	azulB = 166
 
-	azulTituloR = 26
-	azulTituloG = 68
-	azulTituloB = 128
+	azulTituloR = 37
+	azulTituloG = 94
+	azulTituloB = 166
 
-	azulDatosCabR = 16
-	azulDatosCabG = 48
-	azulDatosCabB = 98
+	azulDatosCabR = 37
+	azulDatosCabG = 94
+	azulDatosCabB = 166
 
 	azulSuaveR = 210
 	azulSuaveG = 224

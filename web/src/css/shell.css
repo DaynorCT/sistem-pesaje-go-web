@@ -1,8 +1,11 @@
 /* Shell y módulos — extraído de pesaje-go frontend/src/app.css + pesaje.css */
 
 .barra-superior {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   background: var(--pesaje-tarjeta);
-  border-bottom: 1px solid var(--pesaje-primario-suave);
+  border-bottom: 1px solid var(--pesaje-borde);
 }
 
 .shell {
@@ -19,16 +22,20 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px 6px;
+  min-height: 72px;
+  padding: 8px 16px;
   overflow: visible;
   position: relative;
   z-index: 10;
 }
 
 .shell-logo {
-  height: 42px;
+  height: 56px;
+  max-width: 60px;
   width: auto;
+  object-fit: contain;
   display: block;
+  border-radius: 8px;
 }
 
 .shell-nav {
@@ -47,29 +54,37 @@
 .shell-item-menu {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   border: none;
   background: transparent;
   cursor: pointer;
   font: inherit;
-  padding: 9px 14px;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 8px 12px;
   border-radius: 6px;
-  color: #52616f;
+  color: var(--pesaje-nav-texto-suave);
   box-shadow: none;
 }
 
 .shell-item-menu.activo {
-  background-color: var(--pesaje-primario-suave);
-  color: var(--pesaje-titulo);
-  font-weight: normal;
+  background-color: var(--pesaje-nav-fondo-activo);
+  color: var(--pesaje-nav-texto);
+  font-weight: 600;
+}
+
+/* Catálogo / Config: título activo en primary (como next) */
+.shell-menu-ancla > .shell-item-menu.activo {
+  color: var(--pesaje-primario);
 }
 
 .shell-item-menu:hover {
-  background-color: #f3f4f6;
+  background-color: var(--pesaje-nav-fondo-activo);
+  color: var(--pesaje-nav-texto);
 }
 
 .shell-nav .shell-item-menu.activo:hover {
-  background-color: var(--pesaje-primario-suave);
+  background-color: var(--pesaje-nav-fondo-activo);
 }
 
 .shell-item-label {
@@ -83,8 +98,8 @@
 }
 
 .shell-item-menu.activo .shell-item-chevron {
-  opacity: 0.7;
-  color: var(--pesaje-titulo);
+  opacity: 0.75;
+  color: inherit;
 }
 
 .shell-menu-ancla {
@@ -127,11 +142,13 @@
   border-radius: 6px;
   cursor: pointer;
   font: inherit;
-  color: #52616f;
+  font-size: 14px;
+  color: var(--pesaje-nav-texto-suave);
 }
 
 .shell-submenu-item:hover {
-  background: #f3f4f6;
+  background: var(--pesaje-nav-fondo-activo);
+  color: var(--pesaje-nav-texto);
 }
 
 .shell-submenu-item .shell-item-icon svg {
@@ -148,30 +165,36 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
   border: none;
-  background: var(--pesaje-primario);
-  border-radius: 50%;
+  background: transparent;
+  border-radius: 8px;
   cursor: pointer;
-  color: #fff;
+  color: var(--pesaje-nav-texto);
   font-size: 14px;
   font-weight: 600;
 }
 
 .boton-usuario-cabecera:hover {
-  filter: brightness(0.92);
+  background: var(--pesaje-nav-fondo-activo);
 }
 
 .boton-usuario-cabecera .shell-usuario-icon {
   display: inline-flex;
-  color: #fff;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--pesaje-primario);
+  color: var(--pesaje-texto-inverso);
 }
 
 .boton-usuario-cabecera .shell-usuario-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
 }
 
 .shell-item-icon {
@@ -200,10 +223,17 @@
   min-width: 200px;
   background: var(--pesaje-tarjeta);
   border: 1px solid var(--pesaje-borde);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1);
   z-index: 30;
+}
+
+.shell-submenu.menu-flotante {
+  left: 0;
+  right: auto;
+  min-width: 192px;
+  border-radius: 6px;
 }
 
 .shell-menu-usuario-cabecera {
@@ -248,7 +278,7 @@
 }
 
 .shell-menu-usuario-item--salir:hover {
-  background: #fdecea;
+  background: var(--pesaje-error-suave);
 }
 
 .shell-contenido {
@@ -553,15 +583,15 @@ table.tabla-modulo td.tabla-celda-acciones {
 }
 
 .estado-etiqueta--proceso {
-  color: #92400e;
-  border-color: #fef3c7;
-  background: #fef3c7;
+  color: var(--pesaje-advertencia);
+  border-color: var(--pesaje-advertencia-suave);
+  background: var(--pesaje-advertencia-suave);
 }
 
 .estado-etiqueta--finalizado {
-  color: #1e40af;
-  border-color: #dbeafe;
-  background: #dbeafe;
+  color: var(--pesaje-info);
+  border-color: var(--pesaje-info-suave);
+  background: var(--pesaje-info-suave);
 }
 
 .abm-btn-editar,
@@ -622,7 +652,7 @@ table.tabla-modulo td.tabla-celda-acciones {
 }
 
 .tabla-btn-icono[data-act="finalizar"] {
-  color: var(--pesaje-primario);
+  color: var(--pesaje-exito);
 }
 
 .shell-menu-item-icono {
@@ -971,7 +1001,7 @@ select.combo-web {
   font-size: var(--pesaje-font-size);
   line-height: 1.35;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239a3412' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23255ea6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 14px;

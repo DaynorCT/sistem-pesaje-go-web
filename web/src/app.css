@@ -70,7 +70,7 @@ input.password-field:focus {
 }
 .boton-primario {
   background-color: var(--pesaje-primario);
-  color: white;
+  color: var(--pesaje-texto-inverso);
   font-weight: bold;
   border-radius: 6px;
   padding: 8px 16px;
@@ -79,7 +79,7 @@ input.password-field:focus {
   cursor: pointer;
 }
 .boton-primario:hover {
-  background-color: #7c2d0e;
+  background-color: var(--pesaje-primario-oscuro);
 }
 .oculto {
   display: none !important;
@@ -106,4 +106,80 @@ input.password-field:focus {
 .mensaje-error,
 .login-error {
   color: var(--pesaje-error);
+}
+
+.mensaje-exito {
+  color: var(--pesaje-exito);
+}
+
+.mensaje-info {
+  color: var(--pesaje-info);
+}
+
+.mensaje-advertencia {
+  color: var(--pesaje-advertencia);
+}
+
+.boton-exito {
+  background: var(--pesaje-exito);
+  color: var(--pesaje-texto-inverso);
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.boton-exito:hover {
+  filter: brightness(0.92);
+}
+
+.boton-exito:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.boton-advertencia {
+  background: var(--pesaje-advertencia);
+  color: var(--pesaje-texto-inverso);
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.boton-advertencia:hover {
+  filter: brightness(0.92);
+}
+
+.boton-advertencia:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.boton-peligro {
+  background: var(--pesaje-error);
+  color: var(--pesaje-texto-inverso);
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.boton-peligro:hover {
+  filter: brightness(0.92);
+}
+
+.boton-peligro:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.boton-info:hover {
+  filter: brightness(0.97);
 }

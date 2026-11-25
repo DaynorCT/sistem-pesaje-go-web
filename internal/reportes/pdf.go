@@ -18,9 +18,9 @@ const (
 	margenLateral = 9.0
 	margenInferior = 18.0
 
-	azulDatosCabR = 16
-	azulDatosCabG = 48
-	azulDatosCabB = 98
+	azulDatosCabR = 37
+	azulDatosCabG = 94
+	azulDatosCabB = 166
 
 	fondoBarraR   = 232
 	fondoBarraG   = 236

@@ -62,10 +62,10 @@ export default function Inicio() {
     if (!canvas || puntos7.length === 0) return;
     const primario =
       getComputedStyle(document.documentElement).getPropertyValue("--pesaje-primario").trim() ||
-      "#9a3412";
+      "#255ea6";
     const suave =
       getComputedStyle(document.documentElement).getPropertyValue("--pesaje-primario-suave").trim() ||
-      "#f6ece6";
+      "#e8f0fa";
     chartRef.current?.destroy();
     chartRef.current = new Chart(canvas, {
       type: "bar",
