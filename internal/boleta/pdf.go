@@ -36,12 +36,13 @@ const (
 	azulSuaveG = 224
 	azulSuaveB = 242
 
-	fondoBarraR = 232
-	fondoBarraG = 236
-	fondoBarraB = 242
-	bordeBarraR = 210
-	bordeBarraG = 216
-	bordeBarraB = 224
+	fondoBarraR   = 232
+	fondoBarraG   = 236
+	fondoBarraB   = 242
+	bordeBarraR   = 195
+	bordeBarraG   = 202
+	bordeBarraB   = 212
+	grosorBordeMM = 0.35
 
 	fondoGuiaR = 233
 	fondoGuiaG = 239
@@ -80,8 +81,8 @@ func GenerarPDF(d *Datos, cfg *Config, logo []byte) ([]byte, error) {
 }
 
 func lineaCorteMitad(pdf *gofpdf.Fpdf) {
-	pdf.SetDrawColor(190, 198, 208)
-	pdf.SetLineWidth(0.35)
+	pdf.SetDrawColor(bordeBarraR, bordeBarraG, bordeBarraB)
+	pdf.SetLineWidth(grosorBordeMM)
 	pdf.SetDashPattern([]float64{1.5, 1.5}, 0)
 	y := altoMitadMM
 	pdf.Line(margenLateral, y, pageAnchoMM-margenLateral, y)
@@ -94,17 +95,18 @@ func dibujarBoletaMitad(pdf *gofpdf.Fpdf, d *Datos, cfg *Config, logo []byte, y0
 
 	// --- Encabezado: izquierda | centro | derecha ---
 	yEnc := y0 + 7
-	pdf.SetFont("Helvetica", "B", 8)
+	const pasoEncIzq = 4.5
+	pdf.SetFont("Helvetica", "B", 9)
 	pdf.SetTextColor(45, 45, 48)
 	pdf.Text(x0, yEnc, sinAcentos(strings.ToUpper(cfg.Salida)))
-	pdf.SetFont("Helvetica", "", 8)
-	pdf.Text(x0, yEnc+3.5, sinAcentos(strings.ToUpper(cfg.Direccion)))
+	pdf.SetFont("Helvetica", "", 9)
+	pdf.Text(x0, yEnc+pasoEncIzq, sinAcentos(strings.ToUpper(cfg.Direccion)))
 	cel := "Cel: " + cfg.Celular1
 	if strings.TrimSpace(cfg.Celular2) != "" {
 		cel += " - " + cfg.Celular2
 	}
-	pdf.Text(x0, yEnc+7, cel)
-	pdf.Text(x0, yEnc+10.5, sinAcentos(strings.ToUpper(cfg.Ciudad)))
+	pdf.Text(x0, yEnc+2*pasoEncIzq, cel)
+	pdf.Text(x0, yEnc+3*pasoEncIzq, sinAcentos(strings.ToUpper(cfg.Ciudad)))
 
 	cx := pageAnchoMM / 2
 	pdf.SetFont("Helvetica", "B", 10)
@@ -121,10 +123,13 @@ func dibujarBoletaMitad(pdf *gofpdf.Fpdf, d *Datos, cfg *Config, logo []byte, y0
 
 	dibujarLogoBoletaVertical(pdf, logo, cfg, y0+5, copiaIdx)
 
-	const altoBar = 8.0
+	const (
+		altoBar    = 9.0
+		fontGuiaPt = 9.5
+	)
 	yBar := y0 + 25
 	prefGuia, numGuia := guiaPartes(d)
-	pdf.SetFont("Helvetica", "B", 7)
+	pdf.SetFont("Helvetica", "B", 9)
 	anchoFondoGuia := pdf.GetStringWidth(prefGuia+numGuia) + 6
 	if anchoFondoGuia > ancho {
 		anchoFondoGuia = ancho
@@ -133,18 +138,22 @@ func dibujarBoletaMitad(pdf *gofpdf.Fpdf, d *Datos, cfg *Config, logo []byte, y0
 	pdf.SetFillColor(fondoGuiaR, fondoGuiaG, fondoGuiaB)
 	pdf.Rect(x0, yBar, anchoFondoGuia, altoBar, "F")
 	pdf.SetDrawColor(bordeBarraR, bordeBarraG, bordeBarraB)
-	pdf.SetLineWidth(0.4)
+	pdf.SetLineWidth(grosorBordeMM)
 	pdf.Line(x0, yBar, x0+ancho, yBar)
 	pdf.Line(x0, yBar+altoBar, x0+ancho, yBar+altoBar)
 
-	dibujarGuiaEnBarraIzq(pdf, x0+3, yBar+5.2, prefGuia, numGuia)
+	dibujarGuiaEnBarraIzq(pdf, x0+3, yBar+5.6, fontGuiaPt, prefGuia, numGuia)
 	pdf.SetTextColor(0, 0, 0)
 
 	// Dos columnas lado a lado (como la imagen de referencia)
+	const (
+		gapEntreBloques = 4.0
+		gapTrasFecha    = 3.5
+	)
 	gap := 3.5
 	colW := (ancho - gap) / 2
-	altoCol := 38.0
-	yCols := yBar + 9
+	altoCol := 42.0
+	yCols := yBar + altoBar + gapEntreBloques
 	dibujarCajaDatosColumna(pdf, x0, yCols, colW, altoCol, "DATOS DEL VEHICULO", [][2]string{
 		{"Placa", d.VehiculoPlaca},
 		{"Chofer", d.ChoferNombre},
@@ -160,43 +169,40 @@ func dibujarBoletaMitad(pdf *gofpdf.Fpdf, d *Datos, cfg *Config, logo []byte, y0
 		{"Flete Bs.", formatoBs(d.FleteBs)},
 	})
 
-	// Fecha / hora bajo las columnas (como mock: una franja unida visualmente)
-	yFh := yCols + altoCol + 3
-	cajaFecha(pdf, x0, yFh, ancho, 6.5)
-	pdf.SetFont("Helvetica", "", 6.5)
-	fhPes := sinAcentos(fmt.Sprintf("Fecha/Hora (Pes): %s %s", d.Fecha, d.Hora))
-	pdf.Text(x0+3, yFh+4.3, fhPes)
-	fhImp := sinAcentos(fmt.Sprintf("Fecha/Hora (Imp): %s %s", fechaImp, horaImp))
-	wfi := pdf.GetStringWidth(fhImp)
-	pdf.Text(x0+ancho-wfi-3, yFh+4.3, fhImp)
+	// Fecha / hora: una sola caja (como antes); Imp alineado con DATOS DEL PESAJE
+	yFh := yCols + altoCol + gapEntreBloques
+	xColDer := x0 + colW + gap
+	const altoFh = 6.5
+	cajaFecha(pdf, x0, yFh, ancho, altoFh)
+	xSepFh := x0 + colW + gap/2
+	pdf.SetDrawColor(bordeBarraR, bordeBarraG, bordeBarraB)
+	pdf.SetLineWidth(grosorBordeMM)
+	pdf.Line(xSepFh, yFh+1.2, xSepFh, yFh+altoFh-1.2)
+	pdf.SetTextColor(60, 65, 72)
+	textoFechaHoraBoleta(pdf, x0+3, yFh+4.3, "Fecha/Hora (Pes)", d.Fecha, d.Hora)
+	textoFechaHoraBoleta(pdf, xColDer+3, yFh+4.3, "Fecha/Hora (Imp)", fechaImp, horaImp)
+	pdf.SetTextColor(0, 0, 0)
 
 	// Tres pesos
-	yPesos := yFh + 9
-	altoPeso := 20.0
+	yPesos := yFh + altoFh + gapTrasFecha
+	altoPeso := 22.0
 	gapP := 3.5
 	triW := (ancho - 2*gapP) / 3
 	dibujarCajaPeso(pdf, x0, yPesos, triW, altoPeso, "PESO BRUTO", formatoPesoKg(d.PesoBruto)+" kg", false)
 	dibujarCajaPeso(pdf, x0+triW+gapP, yPesos, triW, altoPeso, "PESO TARA", formatoPesoKg(d.Tara)+" kg", false)
 	dibujarCajaPeso(pdf, x0+2*(triW+gapP), yPesos, triW, altoPeso, "PESO NETO", formatoPesoKg(d.PesoNeto)+" kg", true)
 
-	yObs := yPesos + altoPeso + 6
-	pdf.SetFont("Helvetica", "", 6.5)
-	pdf.SetTextColor(60, 65, 72)
-	pdf.Text(x0, yObs, "Observaciones:")
-	pdf.SetDrawColor(205, 212, 220)
-	pdf.SetLineWidth(0.35)
-	pdf.Line(x0+24, yObs-0.8, x0+ancho, yObs-0.8)
-
-	yFirma := yObs + 9
+	const gapAntesFirma = 14.0
+	yFirma := yPesos + altoPeso + gapAntesFirma
 	mitad := (ancho - 10) / 2
-	pdf.SetDrawColor(160, 168, 178)
-	pdf.SetLineWidth(0.35)
+	pdf.SetDrawColor(bordeBarraR, bordeBarraG, bordeBarraB)
+	pdf.SetLineWidth(grosorBordeMM)
 	pdf.Line(x0, yFirma, x0+mitad, yFirma)
 	pdf.Line(x0+mitad+10, yFirma, x0+ancho, yFirma)
-	pdf.SetFont("Helvetica", "", 6)
+	pdf.SetFont("Helvetica", "", 9.0)
 	pdf.SetTextColor(90, 95, 102)
-	centrarTextoEnRango(pdf, x0, x0+mitad, yFirma+3.5, "Chofer o Productor")
-	centrarTextoEnRango(pdf, x0+mitad+10, x0+ancho, yFirma+3.5, "Operador de balanza")
+	centrarTextoEnRango(pdf, x0, x0+mitad, yFirma+4, "Chofer o Productor")
+	centrarTextoEnRango(pdf, x0+mitad+10, x0+ancho, yFirma+4, "Operador de balanza")
 	pdf.SetTextColor(0, 0, 0)
 }
 
@@ -250,8 +256,8 @@ func centrarTextoEspaciado(pdf *gofpdf.Fpdf, cx, y float64, s string, extraMM fl
 	}
 }
 
-func dibujarGuiaEnBarraIzq(pdf *gofpdf.Fpdf, x, y float64, prefijo, numero string) {
-	pdf.SetFont("Helvetica", "B", 7)
+func dibujarGuiaEnBarraIzq(pdf *gofpdf.Fpdf, x, y, tamFuente float64, prefijo, numero string) {
+	pdf.SetFont("Helvetica", "B", tamFuente)
 	wPref := pdf.GetStringWidth(prefijo)
 	pdf.SetTextColor(azulDatosCabR, azulDatosCabG, azulDatosCabB)
 	pdf.Text(x, y, prefijo)
@@ -270,23 +276,33 @@ func centrarTextoEnRango(pdf *gofpdf.Fpdf, x1, x2, y float64, s string) {
 	pdf.Text(cx-w/2, y, s)
 }
 
+func textoFechaHoraBoleta(pdf *gofpdf.Fpdf, x, y float64, etiqueta, fecha, hora string) {
+	const tam = 9.0
+	etiq := sinAcentos(etiqueta + ": ")
+	val := sinAcentos(strings.TrimSpace(fecha + " " + hora))
+	pdf.SetFont("Helvetica", "", tam)
+	pdf.Text(x, y, etiq)
+	pdf.SetFont("Helvetica", "B", tam)
+	pdf.Text(x+pdf.GetStringWidth(etiq), y, val)
+}
+
 func cajaFecha(pdf *gofpdf.Fpdf, x, y, w, h float64) {
 	pdf.SetFillColor(255, 255, 255)
-	pdf.SetDrawColor(210, 216, 224)
-	pdf.SetLineWidth(0.35)
+	pdf.SetDrawColor(bordeBarraR, bordeBarraG, bordeBarraB)
+	pdf.SetLineWidth(grosorBordeMM)
 	pdf.RoundedRect(x, y, w, h, 1.5, "1234", "FD")
 }
 
 func dibujarCajaDatosColumna(pdf *gofpdf.Fpdf, x, y, w, h float64, titulo string, filas [][2]string) {
 	const altoCab = 6.5
 	pdf.SetDrawColor(bordeBarraR, bordeBarraG, bordeBarraB)
-	pdf.SetLineWidth(0.35)
+	pdf.SetLineWidth(grosorBordeMM)
 	pdf.SetFillColor(255, 255, 255)
 	pdf.RoundedRect(x, y, w, h, 2, "1234", "FD")
 	pdf.SetFillColor(fondoBarraR, fondoBarraG, fondoBarraB)
 	pdf.RoundedRect(x, y, w, altoCab, 2, "12", "F")
 	pdf.Rect(x, y+altoCab-0.8, w, 0.8, "F")
-	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetFont("Helvetica", "B", 8.5)
 	pdf.SetTextColor(azulDatosCabR, azulDatosCabG, azulDatosCabB)
 	tit := sinAcentos(titulo)
 	pdf.Text(x+2.5, y+4.4, tit)
@@ -294,8 +310,8 @@ func dibujarCajaDatosColumna(pdf *gofpdf.Fpdf, x, y, w, h float64, titulo string
 	const (
 		etiqX    = 2.5
 		valorX   = 26.0
-		fontEtiq = 7.5
-		fontVal  = 8.0
+		fontEtiq = 9.0
+		fontVal  = 9.5
 	)
 	bodyTop := y + altoCab + 2.5
 	bodyH := h - altoCab - 4
@@ -304,8 +320,8 @@ func dibujarCajaDatosColumna(pdf *gofpdf.Fpdf, x, y, w, h float64, titulo string
 	for i, par := range filas {
 		if i > 0 {
 			sepY := bodyTop + paso*float64(i)
-			pdf.SetDrawColor(200, 208, 218)
-			pdf.SetLineWidth(0.35)
+			pdf.SetDrawColor(bordeBarraR, bordeBarraG, bordeBarraB)
+			pdf.SetLineWidth(grosorBordeMM)
 			pdf.Line(x+2, sepY, x+w-2, sepY)
 		}
 		ry := bodyTop + paso*float64(i) + paso*centradoFila
@@ -313,7 +329,7 @@ func dibujarCajaDatosColumna(pdf *gofpdf.Fpdf, x, y, w, h float64, titulo string
 		val := textoValorBoleta(par[1])
 
 		pdf.SetFont("Helvetica", "", fontEtiq)
-		pdf.SetTextColor(88, 92, 98)
+		pdf.SetTextColor(0, 0, 0)
 		pdf.Text(x+etiqX, ry, etiq)
 
 		tamVal := fontVal
@@ -323,10 +339,10 @@ func dibujarCajaDatosColumna(pdf *gofpdf.Fpdf, x, y, w, h float64, titulo string
 			tamVal -= 0.5
 			pdf.SetFont("Helvetica", "B", tamVal)
 		}
-		pdf.SetTextColor(18, 20, 26)
+		pdf.SetTextColor(0, 0, 0)
 		pdf.Text(x+valorX, ry, val)
 	}
-	pdf.SetLineWidth(0.2)
+	pdf.SetLineWidth(grosorBordeMM)
 	pdf.SetTextColor(0, 0, 0)
 }
 
@@ -354,39 +370,33 @@ func esValorNumericoBoleta(s string) bool {
 	return true
 }
 
-func dibujarCajaPeso(pdf *gofpdf.Fpdf, x, y, w, h float64, titulo, valor string, neto bool) {
-	if neto {
-		pdf.SetDrawColor(azulR, azulG, azulB)
-		pdf.SetLineWidth(0.6)
-		pdf.SetFillColor(232, 240, 252)
-	} else {
-		pdf.SetDrawColor(218, 224, 232)
-		pdf.SetLineWidth(0.25)
-		pdf.SetFillColor(250, 251, 253)
-	}
+func dibujarCajaPeso(pdf *gofpdf.Fpdf, x, y, w, h float64, titulo, valor string, _ bool) {
+	pdf.SetDrawColor(bordeBarraR, bordeBarraG, bordeBarraB)
+	pdf.SetLineWidth(grosorBordeMM)
+	pdf.SetFillColor(250, 251, 253)
 	pdf.RoundedRect(x, y, w, h, 2.5, "1234", "FD")
-	pdf.SetLineWidth(0.25)
-	pdf.SetFont("Helvetica", "B", 6)
-	if neto {
-		pdf.SetTextColor(azulR, azulG, azulB)
-	} else {
-		pdf.SetTextColor(75, 80, 88)
+	const (
+		fontTitPeso = 9.5
+		fontValPeso = 15.0
+	)
+	pdf.SetFont("Helvetica", "", fontTitPeso)
+	pdf.SetTextColor(0, 0, 0)
+	centrarTextoEnRango(pdf, x, x+w, y+5.5, sinAcentos(titulo))
+	tamVal := fontValPeso
+	pdf.SetFont("Helvetica", "B", tamVal)
+	maxW := w - 4
+	for tamVal >= 9 && pdf.GetStringWidth(valor) > maxW {
+		tamVal -= 0.5
+		pdf.SetFont("Helvetica", "B", tamVal)
 	}
-	centrarTextoEnRango(pdf, x, x+w, y+4.5, sinAcentos(titulo))
-	if neto {
-		pdf.SetFont("Helvetica", "B", 10.5)
-		pdf.SetTextColor(azulR, azulG, azulB)
-	} else {
-		pdf.SetFont("Helvetica", "B", 10)
-		pdf.SetTextColor(15, 18, 24)
-	}
+	pdf.SetTextColor(0, 0, 0)
 	centrarTextoEnRango(pdf, x, x+w, y+h*0.62, valor)
 	pdf.SetTextColor(0, 0, 0)
 }
 
 func dibujarLogoBoletaVertical(pdf *gofpdf.Fpdf, logo []byte, cfg *Config, y0 float64, copiaIdx int) {
 	xDer := pageAnchoMM - margenLateral
-	pdf.SetFont("Helvetica", "", 6)
+	pdf.SetFont("Helvetica", "B", 6)
 	pdf.SetTextColor(100, 105, 112)
 	etiq := sinAcentos("ACREDITADO POR:")
 	wE := pdf.GetStringWidth(etiq)
