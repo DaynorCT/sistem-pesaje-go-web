@@ -7,7 +7,7 @@ import (
 )
 
 func TestGenerarReporteProducePDF(t *testing.T) {
-	b, err := reportes.GenerarPDF(nil, "Empresa")
+	b, err := reportes.GenerarPDF(nil, reportes.Encabezado{Empresa: "Empresa"})
 	if err != nil || len(b) < 4 || string(b[:4]) != "%PDF" {
 		t.Fatalf("pdf reporte invalido: len=%d err=%v", len(b), err)
 	}

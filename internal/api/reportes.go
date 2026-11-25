@@ -102,7 +102,12 @@ func (h *ReportesHandler) PDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	empresa := db.NombreEmpresaActiva(r.Context(), h.DB)
-	pdf, err := reportes.GenerarPDF(items, empresa)
+	pdf, err := reportes.GenerarPDF(items, reportes.Encabezado{
+		Empresa: empresa,
+		Desde:   desde,
+		Hasta:   hasta,
+		Placa:   placa,
+	})
 	if err != nil {
 		fail(w, http.StatusInternalServerError, err.Error())
 		return

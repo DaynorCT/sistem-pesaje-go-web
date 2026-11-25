@@ -30,10 +30,10 @@ func formatoBs(n int) string {
 	return fmt.Sprintf("%s.00", formatoEntero(n))
 }
 
-// formatoPesoKg: bajo 10 000 suele ser kg×1000 (7.497); arriba, entero en kg (30.000).
-func formatoPesoKg(v int) string {
+// FormatoPesoKg: bajo 10 000 suele ser kg×1000 (7.497); arriba, entero en kg (30.000).
+func FormatoPesoKg(v int) string {
 	if v < 0 {
-		return "-" + formatoPesoKg(-v)
+		return "-" + FormatoPesoKg(-v)
 	}
 	if v == 0 {
 		return "0.000"

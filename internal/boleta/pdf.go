@@ -188,9 +188,9 @@ func dibujarBoletaMitad(pdf *gofpdf.Fpdf, d *Datos, cfg *Config, logo []byte, y0
 	altoPeso := 22.0
 	gapP := 3.5
 	triW := (ancho - 2*gapP) / 3
-	dibujarCajaPeso(pdf, x0, yPesos, triW, altoPeso, "PESO BRUTO", formatoPesoKg(d.PesoBruto)+" kg", false)
-	dibujarCajaPeso(pdf, x0+triW+gapP, yPesos, triW, altoPeso, "PESO TARA", formatoPesoKg(d.Tara)+" kg", false)
-	dibujarCajaPeso(pdf, x0+2*(triW+gapP), yPesos, triW, altoPeso, "PESO NETO", formatoPesoKg(d.PesoNeto)+" kg", true)
+	dibujarCajaPeso(pdf, x0, yPesos, triW, altoPeso, "PESO BRUTO", FormatoPesoKg(d.PesoBruto)+" kg", false)
+	dibujarCajaPeso(pdf, x0+triW+gapP, yPesos, triW, altoPeso, "PESO TARA", FormatoPesoKg(d.Tara)+" kg", false)
+	dibujarCajaPeso(pdf, x0+2*(triW+gapP), yPesos, triW, altoPeso, "PESO NETO", FormatoPesoKg(d.PesoNeto)+" kg", true)
 
 	const gapAntesFirma = 14.0
 	yFirma := yPesos + altoPeso + gapAntesFirma

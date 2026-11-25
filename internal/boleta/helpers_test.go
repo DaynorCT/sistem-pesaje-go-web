@@ -9,14 +9,14 @@ func TestFormatoEntero(t *testing.T) {
 }
 
 func TestFormatoPesoKg(t *testing.T) {
-	if formatoPesoKg(7497) != "7.497" {
-		t.Fatalf("got %q", formatoPesoKg(7497))
+	if FormatoPesoKg(7497) != "7.497" {
+		t.Fatalf("got %q", FormatoPesoKg(7497))
 	}
-	if formatoPesoKg(4000) != "4.000" {
-		t.Fatalf("got %q", formatoPesoKg(4000))
+	if FormatoPesoKg(4000) != "4.000" {
+		t.Fatalf("got %q", FormatoPesoKg(4000))
 	}
-	if formatoPesoKg(30000) != "30.000" {
-		t.Fatalf("got %q", formatoPesoKg(30000))
+	if FormatoPesoKg(30000) != "30.000" {
+		t.Fatalf("got %q", FormatoPesoKg(30000))
 	}
 }
 
