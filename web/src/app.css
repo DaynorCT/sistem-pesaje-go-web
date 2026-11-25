@@ -68,10 +68,23 @@ input.password-field:focus {
   outline: none;
   border-color: var(--pesaje-primario);
 }
+/* Tipografía botones — paridad next (text-base / font-medium) */
+.boton-primario,
+.boton-secundario,
+.boton-exito,
+.boton-advertencia,
+.boton-peligro,
+.boton-info {
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+}
+
 .boton-primario {
   background-color: var(--pesaje-primario);
   color: var(--pesaje-texto-inverso);
-  font-weight: bold;
   border-radius: 6px;
   padding: 8px 16px;
   border: none;
@@ -123,11 +136,9 @@ input.password-field:focus {
 .boton-exito {
   background: var(--pesaje-exito);
   color: var(--pesaje-texto-inverso);
-  font-weight: bold;
   border: none;
   border-radius: 6px;
   padding: 8px 14px;
-  font: inherit;
   cursor: pointer;
 }
 
@@ -143,11 +154,9 @@ input.password-field:focus {
 .boton-advertencia {
   background: var(--pesaje-advertencia);
   color: var(--pesaje-texto-inverso);
-  font-weight: bold;
   border: none;
   border-radius: 6px;
   padding: 8px 14px;
-  font: inherit;
   cursor: pointer;
 }
 
@@ -163,11 +172,9 @@ input.password-field:focus {
 .boton-peligro {
   background: var(--pesaje-error);
   color: var(--pesaje-texto-inverso);
-  font-weight: bold;
   border: none;
   border-radius: 6px;
   padding: 8px 14px;
-  font: inherit;
   cursor: pointer;
 }
 

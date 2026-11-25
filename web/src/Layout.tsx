@@ -44,7 +44,9 @@ export default function Layout() {
     <div className="shell root">
       <header className="barra-superior shell-cabecera">
         <div className="shell-fila-principal">
-          <img className="shell-logo" src={logoSrc} alt={nombre} width={132} />
+          <div className="shell-logo-envoltorio">
+            <img className="shell-logo" src={logoSrc} alt={nombre} width={132} />
+          </div>
           <ShellNav />
           <div className="shell-usuario" ref={menuRef}>
             <button

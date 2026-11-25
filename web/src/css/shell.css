@@ -6,6 +6,7 @@
   z-index: 50;
   background: var(--pesaje-tarjeta);
   border-bottom: 1px solid var(--pesaje-borde);
+  overflow: visible;
 }
 
 .shell {
@@ -22,20 +23,32 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 30px;
-  padding: 8px 16px;
+  min-height: 52px;
+  padding: 6px 16px;
   overflow: visible;
   position: relative;
   z-index: 10;
 }
 
+/* Huella fija en la barra; el logo se agranda con scale sin subir la fila */
+.shell-logo-envoltorio {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  width: 116px;
+  overflow: visible;
+}
+
 .shell-logo {
-  height: 64px;
-  max-width: 88px;
+  height: 48px;
+  max-width: 72px;
   width: auto;
   object-fit: contain;
   display: block;
   border-radius: 8px;
+  transform: scale(1.58);
+  transform-origin: left center;
 }
 
 .shell-nav {
@@ -349,7 +362,7 @@
   color: var(--pesaje-texto);
   border-radius: 6px;
   padding: 8px 14px;
-  font: inherit;
+  font-family: inherit;
   border: 1px solid var(--pesaje-borde);
   cursor: pointer;
 }
@@ -364,8 +377,9 @@
   border: 1px solid var(--pesaje-info);
   border-radius: 6px;
   padding: 8px 14px;
-  font: inherit;
-  font-weight: bold;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 14px;
   cursor: pointer;
 }
 
